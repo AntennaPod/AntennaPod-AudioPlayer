@@ -63,7 +63,7 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
     private PowerManager.WakeLock mWakeLock = null;
 
     private final static int TRACK_NUM = 0;
-    private final static String TAG_TRACK = "PrestissimoTrack";
+    private final static String TAG_TRACK = "SonicTrack";
 
     private final static int STATE_IDLE = 0;
     private final static int STATE_INITIALIZED = 1;
@@ -164,6 +164,9 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
     public void pause() {
         Log.d(TAG, "pause(), current state: " + mCurrentState);
         switch (mCurrentState) {
+            case STATE_PREPARED:
+                Log.d(TAG_TRACK, "Prepared, ignore pause()");
+                break;
             case STATE_STARTED:
             case STATE_PAUSED:
                 mTrack.pause();
