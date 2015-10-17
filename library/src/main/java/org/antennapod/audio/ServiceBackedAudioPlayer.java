@@ -855,19 +855,24 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
     // the client app's responsibility to request that permission
     public void setWakeMode(Context context, int mode) {
         Log.d(SBMP_TAG, "setWakeMode(context, " + mode + ")");
-        if ((this.mWakeLock != null)
-                && (this.mWakeLock.isHeld())) {
-            this.mWakeLock.release();
+        boolean wasHeld = false;
+        if (mWakeLock != null) {
+            if(mWakeLock.isHeld()) {
+                wasHeld = true;
+                Log.d(SBMP_TAG, "Releasing wakelock");
+                mWakeLock.release();
+            }
+            mWakeLock = null;
         }
         if (mode != 0) {
-            if (this.mWakeLock == null) {
-                PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
-                // Since mode can't be changed on the fly, we have to allocate a new one
-                this.mWakeLock = pm.newWakeLock(mode, this.getClass().getName());
-                this.mWakeLock.setReferenceCounted(false);
-            }
+            PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+            mWakeLock = pm.newWakeLock(mode, this.getClass().getName());
+            mWakeLock.setReferenceCounted(false);
 
-            this.mWakeLock.acquire();
+            if(wasHeld) {
+                Log.d(SBMP_TAG, "Acquiring wakelock");
+                mWakeLock.acquire();
+            }
         }
     }
 
@@ -879,8 +884,10 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
         if (BuildConfig.DEBUG) Log.d(SBMP_TAG, "stayAwake(" + awake + ")");
         if (mWakeLock != null) {
             if (awake && !mWakeLock.isHeld()) {
+                Log.d(SBMP_TAG, "Acquiring wakelock");
                 mWakeLock.acquire();
             } else if (!awake && mWakeLock.isHeld()) {
+                Log.d(SBMP_TAG, "Releasing wakelock");
                 mWakeLock.release();
             }
         }
