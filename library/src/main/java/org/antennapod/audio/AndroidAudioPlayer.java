@@ -207,6 +207,9 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
     }
 
     @Override
+    public int getAudioSessionId() {
+        return mp.getAudioSessionId();
+    }
     public boolean canSetPitch() {
         return false;
     }

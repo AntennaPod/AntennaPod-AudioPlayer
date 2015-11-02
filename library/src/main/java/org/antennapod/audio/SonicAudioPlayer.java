@@ -92,6 +92,15 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
     }
 
     @Override
+    public int getAudioSessionId() {
+        if(mTrack == null) {
+            return 0;
+        } else {
+            return mTrack.getAudioSessionId();
+        }
+    }
+
+    @Override
     public boolean canSetPitch() {
         return true;
     }

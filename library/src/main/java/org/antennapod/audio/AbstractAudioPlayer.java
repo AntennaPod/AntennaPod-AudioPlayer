@@ -35,6 +35,8 @@ public abstract class AbstractAudioPlayer {
         this.mContext = context;
     }
 
+    public abstract int getAudioSessionId();
+
     public abstract boolean canSetPitch();
 
     public abstract boolean canSetSpeed();

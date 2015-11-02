@@ -67,7 +67,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
     // android.media.MediaPlayer on the fly, and we don't want to touch the
     // wrong media player.
 
-    private long sessionId = 0;
+    private int sessionId = 0;
     private boolean isErroring = false;
     private int mAudioStreamType = AudioManager.STREAM_MUSIC;
 
@@ -93,7 +93,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
                         // It exists so that if the client ceases to exist,
                         // the Service becomes aware of that and can shut
                         // down whatever it needs to shut down
-                        ServiceBackedAudioPlayer.this.sessionId = tmpPlayMediaInterface.startSession(new IDeathCallback_0_8.Stub() {
+                        ServiceBackedAudioPlayer.this.sessionId = (int) tmpPlayMediaInterface.startSession(new IDeathCallback_0_8.Stub() {
                         });
                         // This is really bad if this fails
                     } catch (RemoteException e) {
@@ -160,6 +160,11 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
             Log.d(SBMP_TAG, INTENT_NAME + " is not available");
             return false;
         }
+    }
+
+    @Override
+    public int getAudioSessionId() {
+        return sessionId;
     }
 
     /**
