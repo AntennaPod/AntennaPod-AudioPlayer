@@ -16,7 +16,9 @@ package org.antennapod.audio;
 
 import android.content.Context;
 import android.media.MediaPlayer;
+import android.media.PlaybackParams;
 import android.net.Uri;
+import android.os.Build;
 import android.util.Log;
 
 import java.io.IOException;
@@ -210,13 +212,23 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
     public int getAudioSessionId() {
         return mp.getAudioSessionId();
     }
+
+    @Override
     public boolean canSetPitch() {
-        return false;
+        if(Build.VERSION.SDK_INT >= 23) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     @Override
     public boolean canSetSpeed() {
-        return false;
+        if(Build.VERSION.SDK_INT >= 23) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     @Override
@@ -404,18 +416,34 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
 
     @Override
     public void setPitchStepsAdjustment(float pitchSteps) {
-        // Can't!
+        if(Build.VERSION.SDK_INT < 23) {
+            return;
+        }
+        PlaybackParams params = mp.getPlaybackParams();
+        params.setPitch(params.getPitch() + pitchSteps);
+        mp.setPlaybackParams(params);
     }
 
     @Override
     public void setPlaybackPitch(float f) {
-        // Can't!
+        Log.d(AMP_TAG, "setPlaybackPitch(" + f + ")");
+        if (Build.VERSION.SDK_INT < 23) {
+            return;
+        }
+        PlaybackParams params = mp.getPlaybackParams();
+        params.setPitch(f);
+        mp.setPlaybackParams(params);
     }
 
     @Override
     public void setPlaybackSpeed(float f) {
-        // Can't!
         Log.d(AMP_TAG, "setPlaybackSpeed(" + f + ")");
+        if (Build.VERSION.SDK_INT < 23) {
+            return;
+        }
+        PlaybackParams params = mp.getPlaybackParams();
+        params.setSpeed(f);
+        mp.setPlaybackParams(params);
     }
 
     @Override
