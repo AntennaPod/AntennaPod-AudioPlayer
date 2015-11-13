@@ -61,8 +61,8 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
     private int mCurrentState;
     private final Context mContext;
     private PowerManager.WakeLock mWakeLock = null;
+    private boolean mDownMix;
 
-    private final static int TRACK_NUM = 0;
     private final static String TAG_TRACK = "SonicTrack";
 
     private final static int STATE_IDLE = 0;
@@ -89,6 +89,7 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
         mUri = null;
         mLock = new ReentrantLock();
         mDecoderLock = new Object();
+        mDownMix = false;
     }
 
     @Override
@@ -129,6 +130,16 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
     @Override
     public float getCurrentSpeedMultiplier() {
         return mCurrentSpeed;
+    }
+
+    @Override
+    public boolean canDownmix() {
+        return true;
+    }
+
+    @Override
+    public void setDownmix(boolean enable) {
+        mDownMix = enable;
     }
 
     public int getDuration() {
@@ -334,34 +345,48 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
     }
 
     public void seekTo(final int msec) {
+        boolean playing = false;
         switch (mCurrentState) {
-            case STATE_PREPARED:
             case STATE_STARTED:
+                playing = true;
+                pause();
+            case STATE_PREPARED:
             case STATE_PAUSED:
             case STATE_PLAYBACK_COMPLETED:
-                Thread t = new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        mLock.lock();
-                        if (mTrack == null) {
-                            return;
-                        }
-                        mTrack.flush();
-                        mExtractor.seekTo(((long) msec * 1000), MediaExtractor.SEEK_TO_CLOSEST_SYNC);
-                        Log.d(TAG, "seek completed");
-                        if(owningMediaPlayer.onSeekCompleteListener != null) {
-                            owningMediaPlayer.onSeekCompleteListener.onSeekComplete(owningMediaPlayer);
-                        }
-                        mLock.unlock();
-                    }
-                });
-                t.setDaemon(true);
-                t.start();
+                mLock.lock();
+                if (mTrack == null) {
+                    return;
+                }
+                mTrack.flush();
+                mExtractor.seekTo(((long) msec * 1000), MediaExtractor.SEEK_TO_PREVIOUS_SYNC);
+                if(hasVideoTrack()) {
+                    Log.d(TAG, "sample time: " + mExtractor.getSampleTime());
+                    mExtractor.advance();
+                    Log.d(TAG, "sample time: " + mExtractor.getSampleTime());
+                }
+                Log.d(TAG, "seek completed, position: " + (mExtractor.getSampleTime() / 1000L));
+                if (owningMediaPlayer.onSeekCompleteListener != null) {
+                    owningMediaPlayer.onSeekCompleteListener.onSeekComplete(owningMediaPlayer);
+                }
+                mLock.unlock();
+                if (playing) {
+                    start();
+                }
                 break;
             default:
                 error();
         }
     }
+
+    private boolean hasVideoTrack() {
+        for(int i=0, count = mExtractor.getTrackCount(); i < count; i++) {
+            MediaFormat format = mExtractor.getTrackFormat(i);
+            String mime = format.getString(MediaFormat.KEY_MIME);
+            Log.d(TAG, "mime: " + mime);
+        }
+        return false;
+    }
+
 
     @Override
     public void setAudioStreamType(int streamtype) {
@@ -417,6 +442,10 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
             default:
                 error();
         }
+    }
+
+    public void setDownMix(boolean downmix) {
+        mDownMix = downmix;
     }
 
     @SuppressWarnings("deprecation")
@@ -486,7 +515,22 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
             throw new IOException();
         }
 
-        final MediaFormat oFormat = mExtractor.getTrackFormat(TRACK_NUM);
+        int trackNum = -1;
+        for(int i=0; i < mExtractor.getTrackCount(); i++) {
+            final MediaFormat oFormat = mExtractor.getTrackFormat(i);
+            String mime = oFormat.getString(MediaFormat.KEY_MIME);
+            if(trackNum < 0 &&  mime.startsWith("audio/")) {
+                trackNum = i;
+            } else {
+                mExtractor.unselectTrack(i);
+            }
+        }
+
+        if(trackNum < 0) {
+            throw new IOException("No audio track found");
+        }
+
+        final MediaFormat oFormat = mExtractor.getTrackFormat(trackNum);
         int sampleRate = oFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE);
         int channelCount = oFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
         final String mime = oFormat.getString(MediaFormat.KEY_MIME);
@@ -496,7 +540,7 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
         Log.v(TAG_TRACK, "Mime type: " + mime);
 
         initDevice(sampleRate, channelCount);
-        mExtractor.selectTrack(TRACK_NUM);
+        mExtractor.selectTrack(trackNum);
         mCodec = MediaCodec.createDecoderByType(mime);
         mCodec.configure(oFormat, null, null, 0);
         mLock.unlock();
@@ -592,8 +636,25 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
                                 if (modifiedSamples.length < available) {
                                     modifiedSamples = new byte[available];
                                 }
-                                mSonic.readBytesFromStream(modifiedSamples, available);
-                                mTrack.write(modifiedSamples, 0, available);
+                                if (mDownMix && mSonic.getNumChannels() == 2) {
+                                    int maxBytes = (available / 4) * 4;
+                                    mSonic.readBytesFromStream(modifiedSamples, maxBytes);
+
+                                    for (int i = 0; (i + 3) < modifiedSamples.length; i += 4) {
+                                        short left = (short) ((modifiedSamples[i] & 0xff) | (modifiedSamples[i + 1] << 8));
+                                        short right = (short) ((modifiedSamples[i + 2] & 0xff) | (modifiedSamples[i + 3] << 8));
+                                        short value = (short) (0.5 * left + 0.5 * right);
+
+                                        modifiedSamples[i] = (byte) (value & 0xff);
+                                        modifiedSamples[i + 1] = (byte) (value >> 8);
+                                        modifiedSamples[i + 2] = (byte) (value & 0xff);
+                                        modifiedSamples[i + 3] = (byte) (value >> 8);
+                                    }
+                                    mTrack.write(modifiedSamples, 0, maxBytes);
+                                } else {
+                                    mSonic.readBytesFromStream(modifiedSamples, available);
+                                    mTrack.write(modifiedSamples, 0, available);
+                                }
                             }
 
                             mCodec.releaseOutputBuffer(outputBufIndex, false);

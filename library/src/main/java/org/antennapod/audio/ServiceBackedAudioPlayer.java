@@ -216,6 +216,16 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
         return false;
     }
 
+    @Override
+    public boolean canDownmix() {
+        return false;
+    }
+
+    @Override
+    public void setDownmix(boolean enable) {
+        return;
+    }
+
     void error(int what, int extra) {
         owningMediaPlayer.lock.lock();
         Log.e(SBMP_TAG, "error(" + what + ", " + extra + ")");

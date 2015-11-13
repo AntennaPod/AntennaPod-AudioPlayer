@@ -302,6 +302,7 @@ public class MediaPlayer {
         this.mpi = this.amp = new AndroidAudioPlayer(this, context);
         if(Build.VERSION.SDK_INT >= 16) {
             this.smp = new SonicAudioPlayer(this, context);
+            this.smp.setDownMix(downmix());
         }
 
         // setupMpi will go get the Service, if it can, then bring that
@@ -311,6 +312,10 @@ public class MediaPlayer {
     }
 
     protected boolean useSonic() {
+        return false;
+    }
+
+    protected boolean downmix() {
         return false;
     }
 
@@ -621,6 +626,15 @@ public class MediaPlayer {
         lock.lock();
         try {
             return this.mpi.canSetSpeed();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public boolean canDownmix() {
+        lock.lock();
+        try {
+            return this.mpi.canDownmix();
         } finally {
             lock.unlock();
         }
@@ -1066,6 +1080,15 @@ public class MediaPlayer {
         try {
             this.mSpeedMultiplier = f;
             this.mpi.setPlaybackSpeed(f);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public void setDownmix(boolean enable) {
+        lock.lock();
+        try {
+            this.mpi.setDownmix(enable);
         } finally {
             lock.unlock();
         }

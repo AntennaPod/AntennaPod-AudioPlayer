@@ -237,6 +237,11 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
     }
 
     @Override
+    public boolean canDownmix() {
+        return false;
+    }
+
+    @Override
     public int getCurrentPosition() {
         owningMediaPlayer.lock.lock();
         try {
@@ -444,6 +449,11 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
         PlaybackParams params = mp.getPlaybackParams();
         params.setSpeed(f);
         mp.setPlaybackParams(params);
+    }
+
+    @Override
+    public void setDownmix(boolean enable) {
+        return;
     }
 
     @Override

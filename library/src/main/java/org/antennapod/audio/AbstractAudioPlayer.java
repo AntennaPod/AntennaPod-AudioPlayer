@@ -41,6 +41,8 @@ public abstract class AbstractAudioPlayer {
 
     public abstract boolean canSetSpeed();
 
+    public abstract boolean canDownmix();
+
     public abstract float getCurrentPitchStepsAdjustment();
 
     public abstract int getCurrentPosition();
@@ -84,6 +86,8 @@ public abstract class AbstractAudioPlayer {
     public abstract void setPlaybackPitch(float f);
 
     public abstract void setPlaybackSpeed(float f);
+
+    public abstract void setDownmix(boolean enable);
 
     public abstract void setVolume(float leftVolume, float rightVolume);
 
