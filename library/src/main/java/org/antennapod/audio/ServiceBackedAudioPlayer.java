@@ -298,6 +298,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
             if (!ConnectPlayMediaService()) {
                 ServiceBackedAudioPlayer.this.error(MediaPlayer.MEDIA_ERROR_UNKNOWN, 0);
             }
+            return 0;
         }
         try {
             return pmInterface.getCurrentPosition(
