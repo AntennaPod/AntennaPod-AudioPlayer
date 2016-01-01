@@ -9,24 +9,20 @@ You can find the license text in the LICENSE file.
 
 ## Local testing
 
-Go to your workspace
+**settings.gradle**
 ```
-mkdir AntennaPod/app/libs/ AntennaPod/core/libs/
-AntennaPod-AudioPlayer/gradlew clean
-cp AntennaPod-AudioPlayer/library/build/outputs/aar/library-debug.aar AntennaPod/app/libs/library.aar
-cp AntennaPod-AudioPlayer/library/build/outputs/aar/library-debug.aar AntennaPod/core/libs/library.aar
+...
+include ':aap'
+project(':aap').projectDir = new File('../AntennaPod-AudioPlayer/library')
 ```
+
+**app/build.gradle** and **core/build.gradle**
+
 
 Edit both ``AntennaPod/app/build.gradle`` and ``AntennaPod/core/build.gradle``
 ```
-repositories {
-    ...
-    flatDir {
-        dirs 'libs'
-    }
-}
 
 dependencies {
     ....
-    compile 'org.antennapod.audio:library:1.0@aar'
+    compile project(":aap")
 }
