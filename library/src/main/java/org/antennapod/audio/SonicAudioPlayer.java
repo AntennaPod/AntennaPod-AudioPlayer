@@ -546,14 +546,45 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
     private void initDevice(int sampleRate, int numChannels) {
         mLock.lock();
         final int format = findFormatFromChannels(numChannels);
-        final int minSize = AudioTrack.getMinBufferSize(sampleRate, format,
-                AudioFormat.ENCODING_PCM_16BIT);
-        mTrack = new AudioTrack(AudioManager.STREAM_MUSIC, sampleRate, format,
-                AudioFormat.ENCODING_PCM_16BIT, minSize * 4,
-                AudioTrack.MODE_STREAM);
+        int oldBufferSize = mBufferSize;
+        mBufferSize = AudioTrack.getMinBufferSize(sampleRate, format, AudioFormat.ENCODING_PCM_16BIT);
+        if(mBufferSize != oldBufferSize) {
+            if (mTrack != null) {
+                mTrack.release();
+            }
+            mTrack = createAudioTrack(sampleRate, format, mBufferSize);
+        }
         mSonic = new Sonic(sampleRate, numChannels);
         mLock.unlock();
     }
+
+    private AudioTrack createAudioTrack(int sampleRate,
+                                        int channelConfig,
+                                        int minBufferSize) {
+        for (int i = 4; i >= 1; i--) {
+            int bufferSize = minBufferSize * i;
+
+            AudioTrack audioTrack = null;
+            try {
+                audioTrack = new AudioTrack(AudioManager.STREAM_MUSIC, sampleRate,
+                        channelConfig, AudioFormat.ENCODING_PCM_16BIT, bufferSize,
+                        AudioTrack.MODE_STREAM);
+                if (audioTrack.getState() == AudioTrack.STATE_INITIALIZED) {
+                    mBufferSize = bufferSize;
+                    return audioTrack;
+                } else {
+                    audioTrack.release();
+                }
+            } catch (IllegalArgumentException e) {
+                Log.e(TAG, Log.getStackTraceString(e));
+                if (audioTrack != null) {
+                    audioTrack.release();
+                }
+            }
+        }
+        throw new IllegalStateException("Could not create buffer for AudioTrack");
+    }
+
 
     @SuppressWarnings("deprecation")
     public void decode() {
