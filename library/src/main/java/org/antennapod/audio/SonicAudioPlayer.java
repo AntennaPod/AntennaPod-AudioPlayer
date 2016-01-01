@@ -45,6 +45,7 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
 
     protected final MediaPlayer mMediaPlayer;
     private AudioTrack mTrack;
+    private int mBufferSize;
     private Sonic mSonic;
     private MediaExtractor mExtractor;
     private MediaCodec mCodec;
@@ -119,12 +120,10 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
     public int getCurrentPosition() {
         switch (mCurrentState) {
             case STATE_ERROR:
-                error();
-                break;
+                return 0;
             default:
                 return (int) (mExtractor.getSampleTime() / 1000);
         }
-        return 0;
     }
 
     @Override
@@ -298,8 +297,8 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
                 if (mTrack != null) {
                     error();
                 } else {
-                    Log.d("start",
-                            "Attempting to start while in idle after construction.  Not allowed by no callbacks called");
+                    Log.d("start", "Attempting to start while in idle after construction. " +
+                            "Not allowed by no callbacks called");
                 }
         }
     }
@@ -359,11 +358,6 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
                 }
                 mTrack.flush();
                 mExtractor.seekTo(((long) msec * 1000), MediaExtractor.SEEK_TO_PREVIOUS_SYNC);
-                if(hasVideoTrack()) {
-                    Log.d(TAG, "sample time: " + mExtractor.getSampleTime());
-                    mExtractor.advance();
-                    Log.d(TAG, "sample time: " + mExtractor.getSampleTime());
-                }
                 Log.d(TAG, "seek completed, position: " + (mExtractor.getSampleTime() / 1000L));
                 if (owningMediaPlayer.onSeekCompleteListener != null) {
                     owningMediaPlayer.onSeekCompleteListener.onSeekComplete(owningMediaPlayer);
@@ -377,16 +371,6 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
                 error();
         }
     }
-
-    private boolean hasVideoTrack() {
-        for(int i=0, count = mExtractor.getTrackCount(); i < count; i++) {
-            MediaFormat format = mExtractor.getTrackFormat(i);
-            String mime = format.getString(MediaFormat.KEY_MIME);
-            Log.d(TAG, "mime: " + mime);
-        }
-        return false;
-    }
-
 
     @Override
     public void setAudioStreamType(int streamtype) {
@@ -483,6 +467,9 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
     }
 
     public void error(int extra) {
+        if(mCurrentState == STATE_ERROR) {
+            return;
+        }
         Log.e(TAG_TRACK, "Moved to error state!");
         mCurrentState = STATE_ERROR;
         if(owningMediaPlayer.onErrorListener != null) {
@@ -531,18 +518,28 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
         }
 
         final MediaFormat oFormat = mExtractor.getTrackFormat(trackNum);
-        int sampleRate = oFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE);
-        int channelCount = oFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
-        final String mime = oFormat.getString(MediaFormat.KEY_MIME);
-        mDuration = oFormat.getLong(MediaFormat.KEY_DURATION);
+        if (oFormat.containsKey(MediaFormat.KEY_SAMPLE_RATE)
+                && oFormat.containsKey(MediaFormat.KEY_SAMPLE_RATE)
+                && oFormat.containsKey(MediaFormat.KEY_CHANNEL_COUNT)
+                && oFormat.containsKey(MediaFormat.KEY_MIME)
+                && oFormat.containsKey(MediaFormat.KEY_DURATION)) {
+            int sampleRate = oFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE);
+            int channelCount = oFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
+            final String mime = oFormat.getString(MediaFormat.KEY_MIME);
+            mDuration = oFormat.getLong(MediaFormat.KEY_DURATION);
 
-        Log.v(TAG_TRACK, "Sample rate: " + sampleRate);
-        Log.v(TAG_TRACK, "Mime type: " + mime);
+            Log.v(TAG_TRACK, "Sample rate: " + sampleRate);
+            Log.v(TAG_TRACK, "Channel count: " + channelCount);
+            Log.v(TAG_TRACK, "Mime type: " + mime);
+            Log.v(TAG_TRACK, "Duration: " + mDuration);
 
-        initDevice(sampleRate, channelCount);
-        mExtractor.selectTrack(trackNum);
-        mCodec = MediaCodec.createDecoderByType(mime);
-        mCodec.configure(oFormat, null, null, 0);
+            initDevice(sampleRate, channelCount);
+            mExtractor.selectTrack(trackNum);
+            mCodec = MediaCodec.createDecoderByType(mime);
+            mCodec.configure(oFormat, null, null, 0);
+        } else {
+            error();
+        }
         mLock.unlock();
     }
 

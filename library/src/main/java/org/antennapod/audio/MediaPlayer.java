@@ -353,6 +353,15 @@ public class MediaPlayer {
         }
     }
 
+    public boolean canFallback() {
+        return this.mpi == null || false == this.mpi instanceof AndroidAudioPlayer;
+    }
+
+    public void fallback() {
+        smp = null;
+        setupMpi(this.mpi.mContext);
+    }
+
     private void setupMpi(final Context context) {
         lock.lock();
         try {
@@ -469,6 +478,7 @@ public class MediaPlayer {
     }
 
     private void switchMediaPlayerImpl(AbstractAudioPlayer from, AbstractAudioPlayer to) {
+        Log.d(TAG, "switchMediaPlayerImpl() called with: " + "from = [" + from + "], to = [" + to + "]");
         lock.lock();
         try {
             Log.d(MP_TAG, "switchMediaPlayerImpl");
@@ -499,11 +509,8 @@ public class MediaPlayer {
             // none of them require prepare() or the like first
             to.setAudioStreamType(this.mAudioStreamType);
             to.setLooping(this.mIsLooping);
-            to.setPitchStepsAdjustment(this.mPitchStepsAdjustment);
             Log.d(MP_TAG, "Setting playback speed to " + this.mSpeedMultiplier);
-            to.setPlaybackSpeed(this.mSpeedMultiplier);
-            to.setVolume(MediaPlayer.this.mLeftVolume,
-                    MediaPlayer.this.mRightVolume);
+            to.setVolume(MediaPlayer.this.mLeftVolume, MediaPlayer.this.mRightVolume);
             to.setWakeMode(this.mContext, this.mWakeMode);
 
             Log.d(MP_TAG, "asserting at least one data source is null");
@@ -525,6 +532,11 @@ public class MediaPlayer {
                     e.printStackTrace();
                 }
             }
+
+            // (native) mediaplayer has to be initialized
+            to.setPitchStepsAdjustment(this.mPitchStepsAdjustment);
+            to.setPlaybackSpeed(this.mSpeedMultiplier);
+
             if ((this.state == State.PREPARED)
                     || (this.state == State.PREPARING)
                     || (this.state == State.PAUSED)

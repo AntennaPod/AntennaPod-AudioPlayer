@@ -348,8 +348,9 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
         owningMediaPlayer.lock.lock();
         try {
             mp.reset();
-        }
-        finally {
+        } catch(IllegalStateException e) {
+            Log.e(AMP_TAG, Log.getStackTraceString(e));
+        } finally {
             owningMediaPlayer.lock.unlock();
         }
     }
