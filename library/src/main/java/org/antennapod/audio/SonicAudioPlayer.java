@@ -120,6 +120,7 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
     public int getCurrentPosition() {
         switch (mCurrentState) {
             case STATE_ERROR:
+            case STATE_IDLE:
                 return 0;
             default:
                 return (int) (mExtractor.getSampleTime() / 1000);
