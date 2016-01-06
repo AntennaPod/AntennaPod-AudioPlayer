@@ -121,6 +121,7 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
         switch (mCurrentState) {
             case STATE_ERROR:
             case STATE_IDLE:
+            case STATE_INITIALIZED:
                 return 0;
             default:
                 return (int) (mExtractor.getSampleTime() / 1000);
