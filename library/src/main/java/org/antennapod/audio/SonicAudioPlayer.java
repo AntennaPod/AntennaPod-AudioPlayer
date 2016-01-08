@@ -276,8 +276,16 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
 
     public void start() {
         switch (mCurrentState) {
-            case STATE_PREPARED:
             case STATE_PLAYBACK_COMPLETED:
+                try {
+                    initStream();
+                } catch (IOException e) {
+                    Log.e(TAG, "initStream() failed");
+                    error();
+                    return;
+                }
+                // deliberate fallthrough
+            case STATE_PREPARED:
                 mCurrentState = STATE_STARTED;
                 Log.d(TAG, "State changed to STATE_STARTED");
                 mContinue = true;
