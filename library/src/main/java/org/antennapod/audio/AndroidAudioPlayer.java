@@ -449,7 +449,11 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
         }
         PlaybackParams params = mp.getPlaybackParams();
         params.setSpeed(f);
+        boolean isPaused = this.owningMediaPlayer.state == org.antennapod.audio.MediaPlayer.State.PAUSED;
         mp.setPlaybackParams(params);
+        if(isPaused) {
+            mp.pause();
+        }
     }
 
     @Override
