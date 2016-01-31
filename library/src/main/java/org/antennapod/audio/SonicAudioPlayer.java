@@ -496,6 +496,22 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
                 return AudioFormat.CHANNEL_OUT_MONO;
             case 2:
                 return AudioFormat.CHANNEL_OUT_STEREO;
+            case 3:
+                return AudioFormat.CHANNEL_OUT_STEREO | AudioFormat.CHANNEL_OUT_FRONT_CENTER;
+            case 4:
+                return AudioFormat.CHANNEL_OUT_QUAD;
+            case 5:
+                return AudioFormat.CHANNEL_OUT_QUAD | AudioFormat.CHANNEL_OUT_FRONT_CENTER;
+            case 6:
+                return AudioFormat.CHANNEL_OUT_5POINT1;
+            case 7:
+                return AudioFormat.CHANNEL_OUT_5POINT1 | AudioFormat.CHANNEL_OUT_BACK_CENTER;
+            case 8:
+                if (Build.VERSION.SDK_INT >= 23) {
+                    return AudioFormat.CHANNEL_OUT_7POINT1_SURROUND;
+                } else {
+                    return -1;
+                }
             default:
                 return -1; // Error
         }
@@ -528,11 +544,7 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
         }
 
         final MediaFormat oFormat = mExtractor.getTrackFormat(trackNum);
-        if (oFormat.containsKey(MediaFormat.KEY_SAMPLE_RATE)
-                && oFormat.containsKey(MediaFormat.KEY_SAMPLE_RATE)
-                && oFormat.containsKey(MediaFormat.KEY_CHANNEL_COUNT)
-                && oFormat.containsKey(MediaFormat.KEY_MIME)
-                && oFormat.containsKey(MediaFormat.KEY_DURATION)) {
+        try {
             int sampleRate = oFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE);
             int channelCount = oFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
             final String mime = oFormat.getString(MediaFormat.KEY_MIME);
@@ -547,7 +559,8 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
             mExtractor.selectTrack(trackNum);
             mCodec = MediaCodec.createDecoderByType(mime);
             mCodec.configure(oFormat, null, null, 0);
-        } else {
+        } catch(Throwable th) {
+            Log.e(TAG, Log.getStackTraceString(th));
             error();
         }
         mLock.unlock();
