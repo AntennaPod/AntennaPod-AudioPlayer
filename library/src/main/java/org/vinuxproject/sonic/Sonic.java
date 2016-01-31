@@ -448,14 +448,13 @@ public class Sonic {
     }
 
     // Find the best frequency match in the range, and given a sample skip multiple.
-    // For now, just find the pitch of the first channel.  Note that retMinDiff and
-    // retMaxDiff are Int objects, which the caller will need to create with new.
+    // For now, just find the pitch of the first channel. Note that the contents of retDiffs
+    // will be overwritten.
     private int findPitchPeriodInRange(short samples[],
                                        int position,
                                        int minPeriod,
                                        int maxPeriod,
-                                       Integer retMinDiff,
-                                       Integer retMaxDiff) {
+                                       int[] retDiffs) {
         int bestPeriod = 0, worstPeriod = 255;
         int minDiff = 1, maxDiff = 0;
 
@@ -479,8 +478,8 @@ public class Sonic {
                 worstPeriod = period;
             }
         }
-        retMinDiff = minDiff / bestPeriod;
-        retMaxDiff = maxDiff / worstPeriod;
+        retDiffs[0] = minDiff / bestPeriod;
+        retDiffs[1] = maxDiff / worstPeriod;
         return bestPeriod;
     }
 
@@ -517,8 +516,7 @@ public class Sonic {
     private int findPitchPeriod(short samples[],
                                 int position,
                                 boolean preferNewPeriod) {
-        Integer minDiff = new Integer(0);
-        Integer maxDiff = new Integer(0);
+        int[] diffs = { 0,0 }; // 0: minDiff, 1: maxDiff; for mutability
         int period, retPeriod;
         int skip = 1;
 
@@ -526,11 +524,11 @@ public class Sonic {
             skip = sampleRate / SONIC_AMDF_FREQ;
         }
         if (numChannels == 1 && skip == 1) {
-            period = findPitchPeriodInRange(samples, position, minPeriod, maxPeriod, minDiff, maxDiff);
+            period = findPitchPeriodInRange(samples, position, minPeriod, maxPeriod, diffs);
         } else {
             downSampleInput(samples, position, skip);
             period = findPitchPeriodInRange(downSampleBuffer, 0, minPeriod / skip,
-                    maxPeriod / skip, minDiff, maxDiff);
+                    maxPeriod / skip, diffs);
             if (skip != 1) {
                 period *= skip;
                 int minP = period - (skip << 2);
@@ -542,19 +540,19 @@ public class Sonic {
                     maxP = maxPeriod;
                 }
                 if (numChannels == 1) {
-                    period = findPitchPeriodInRange(samples, position, minP, maxP, minDiff, maxDiff);
+                    period = findPitchPeriodInRange(samples, position, minP, maxP, diffs);
                 } else {
                     downSampleInput(samples, position, 1);
-                    period = findPitchPeriodInRange(downSampleBuffer, 0, minP, maxP, minDiff, maxDiff);
+                    period = findPitchPeriodInRange(downSampleBuffer, 0, minP, maxP, diffs);
                 }
             }
         }
-        if (prevPeriodBetter(period, minDiff, maxDiff, preferNewPeriod)) {
+        if (prevPeriodBetter(period, diffs[0], diffs[1], preferNewPeriod)) {
             retPeriod = prevPeriod;
         } else {
             retPeriod = period;
         }
-        prevMinDiff = minDiff;
+        prevMinDiff = diffs[0];
         prevPeriod = period;
         return retPeriod;
     }
