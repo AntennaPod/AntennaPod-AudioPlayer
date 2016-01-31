@@ -84,7 +84,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
                 MediaPlayer.getPrestoServiceIntent(context, INTENT_NAME);
         this.mPlayMediaServiceConnection = new ServiceConnection() {
             public void onServiceConnected(ComponentName name, IBinder service) {
-                IPlayMedia_0_8 tmpPlayMediaInterface = IPlayMedia_0_8.Stub.asInterface((IBinder) service);
+                IPlayMedia_0_8 tmpPlayMediaInterface = IPlayMedia_0_8.Stub.asInterface(service);
 
                 Log.d(SBMP_TAG, "Setting up pmInterface 94");
                 if (ServiceBackedAudioPlayer.this.sessionId == 0) {

@@ -57,8 +57,7 @@ public class MediaPlayer {
          * @param arg0                     The owning media player
          * @param pitchAdjustmentAvailable True if pitch adjustment is available, false if not
          */
-        public abstract void onPitchAdjustmentAvailableChanged(
-                MediaPlayer arg0, boolean pitchAdjustmentAvailable);
+        void onPitchAdjustmentAvailableChanged(MediaPlayer arg0, boolean pitchAdjustmentAvailable);
     }
 
     public interface OnPreparedListener {
@@ -82,7 +81,7 @@ public class MediaPlayer {
         IDLE, INITIALIZED, PREPARED, STARTED, PAUSED, STOPPED, PREPARING, PLAYBACK_COMPLETED, END, ERROR
     }
 
-    private static Uri SPEED_ADJUSTMENT_MARKET_URI = Uri.parse("market://details?id=com.aocate.presto");
+    private final static Uri SPEED_ADJUSTMENT_MARKET_URI = Uri.parse("market://details?id=com.aocate.presto");
 
     private static Intent prestoMarketIntent = null;
 
@@ -186,9 +185,9 @@ public class MediaPlayer {
     // In some cases, we're going to have to replace the
     // android.media.MediaPlayer on the fly, and we don't want to touch the
     // wrong media player, so lock it way too much.
-    ReentrantLock lock = new ReentrantLock();
+    final ReentrantLock lock = new ReentrantLock();
     private int mAudioStreamType = AudioManager.STREAM_MUSIC;
-    private Context mContext;
+    private final Context mContext;
     private boolean mIsLooping = false;
     private float mLeftVolume = 1f;
     private float mPitchStepsAdjustment = 0f;
@@ -246,7 +245,7 @@ public class MediaPlayer {
     };
     OnPitchAdjustmentAvailableChangedListener pitchAdjustmentAvailableChangedListener = null;
 
-    MediaPlayer.OnPreparedListener onPreparedListener = new MediaPlayer.OnPreparedListener() {
+    final MediaPlayer.OnPreparedListener onPreparedListener = new MediaPlayer.OnPreparedListener() {
         public void onPrepared(MediaPlayer arg0) {
             Log.d(MP_TAG, "onPreparedListener 242 setting state to PREPARED");
             MediaPlayer.this.state = State.PREPARED;
@@ -354,7 +353,7 @@ public class MediaPlayer {
     }
 
     public boolean canFallback() {
-        return this.mpi == null || false == this.mpi instanceof AndroidAudioPlayer;
+        return this.mpi == null || !(this.mpi instanceof AndroidAudioPlayer);
     }
 
     public void fallback() {
@@ -575,21 +574,15 @@ public class MediaPlayer {
                     || (this.state == State.PAUSED)
                     || (this.state == State.STOPPED)) {
                 Log.d(MP_TAG, "switchMediaPlayerImpl(): start");
-                if (to != null) {
-                    to.start();
-                }
+                to.start();
             }
 
             if (this.state == State.PAUSED) {
                 Log.d(MP_TAG, "switchMediaPlayerImpl(): paused");
-                if (to != null) {
-                    to.pause();
-                }
+                to.pause();
             } else if (this.state == State.STOPPED) {
                 Log.d(MP_TAG, "switchMediaPlayerImpl(): stopped");
-                if (to != null) {
-                    to.stop();
-                }
+                to.stop();
             }
 
             this.mpi = to;
@@ -823,7 +816,7 @@ public class MediaPlayer {
      * @return True if the Presto library is installed
      */
     public boolean isPrestoLibraryInstalled() {
-        if ((this.mpi == null) || (this.mpi.mContext == null)) {
+        if (this.mpi == null || this.mpi.mContext == null) {
             return false;
         }
         return isPrestoLibraryInstalled(this.mpi.mContext);

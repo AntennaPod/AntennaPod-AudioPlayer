@@ -27,10 +27,10 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
 
     private final static String AMP_TAG = "AndroidMediaPlayer";
 
-    android.media.MediaPlayer mp = null;
+    MediaPlayer mp = null;
 
-    private android.media.MediaPlayer.OnBufferingUpdateListener onBufferingUpdateListener = new android.media.MediaPlayer.OnBufferingUpdateListener() {
-        public void onBufferingUpdate(android.media.MediaPlayer mp, int percent) {
+    private final MediaPlayer.OnBufferingUpdateListener onBufferingUpdateListener = new MediaPlayer.OnBufferingUpdateListener() {
+        public void onBufferingUpdate(MediaPlayer mp, int percent) {
             if (owningMediaPlayer != null) {
                 owningMediaPlayer.lock.lock();
                 try {
@@ -47,8 +47,8 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
         }
     };
 
-    private android.media.MediaPlayer.OnCompletionListener onCompletionListener = new android.media.MediaPlayer.OnCompletionListener() {
-        public void onCompletion(android.media.MediaPlayer mp) {
+    private final MediaPlayer.OnCompletionListener onCompletionListener = new MediaPlayer.OnCompletionListener() {
+        public void onCompletion(MediaPlayer mp) {
             Log.d(AMP_TAG, "onCompletionListener being called");
             if (owningMediaPlayer != null) {
                 owningMediaPlayer.lock.lock();
@@ -64,8 +64,8 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
         }
     };
 
-    private android.media.MediaPlayer.OnErrorListener onErrorListener = new android.media.MediaPlayer.OnErrorListener() {
-        public boolean onError(android.media.MediaPlayer mp, int what, int extra) {
+    private final MediaPlayer.OnErrorListener onErrorListener = new MediaPlayer.OnErrorListener() {
+        public boolean onError(MediaPlayer mp, int what, int extra) {
             // Once we're in errored state, any received messages are going to be junked
             if (owningMediaPlayer != null) {
                 owningMediaPlayer.lock.lock();
@@ -82,8 +82,8 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
         }
     };
 
-    private android.media.MediaPlayer.OnInfoListener onInfoListener = new android.media.MediaPlayer.OnInfoListener() {
-        public boolean onInfo(android.media.MediaPlayer mp, int what, int extra) {
+    private final MediaPlayer.OnInfoListener onInfoListener = new MediaPlayer.OnInfoListener() {
+        public boolean onInfo(MediaPlayer mp, int what, int extra) {
             if (owningMediaPlayer != null) {
                 owningMediaPlayer.lock.lock();
                 try {
@@ -105,8 +105,8 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
     // to PREPARED.  Due to prepareAsync, that's the only
     // reasonable place to do it
     // The others it just didn't make sense to have a setOnXListener that didn't use the parameter
-    private android.media.MediaPlayer.OnPreparedListener onPreparedListener = new android.media.MediaPlayer.OnPreparedListener() {
-        public void onPrepared(android.media.MediaPlayer mp) {
+    private final MediaPlayer.OnPreparedListener onPreparedListener = new MediaPlayer.OnPreparedListener() {
+        public void onPrepared(MediaPlayer mp) {
             Log.d(AMP_TAG, "Calling onPreparedListener.onPrepared()");
             if (AndroidAudioPlayer.this.owningMediaPlayer != null) {
                 AndroidAudioPlayer.this.lockMuteOnPreparedCount.lock();
@@ -132,8 +132,8 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
         }
     };
 
-    private android.media.MediaPlayer.OnSeekCompleteListener onSeekCompleteListener = new android.media.MediaPlayer.OnSeekCompleteListener() {
-        public void onSeekComplete(android.media.MediaPlayer mp) {
+    private final MediaPlayer.OnSeekCompleteListener onSeekCompleteListener = new MediaPlayer.OnSeekCompleteListener() {
+        public void onSeekComplete(MediaPlayer mp) {
             if (owningMediaPlayer != null) {
                 owningMediaPlayer.lock.lock();
                 try {
@@ -196,7 +196,7 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
 //        }
 
         if (mp == null) {
-            throw new IllegalStateException("Did not instantiate android.media.MediaPlayer successfully");
+            throw new IllegalStateException("Did not instantiate MediaPlayer successfully");
         }
 
         mp.setOnBufferingUpdateListener(this.onBufferingUpdateListener);
@@ -215,20 +215,12 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
 
     @Override
     public boolean canSetPitch() {
-        if(Build.VERSION.SDK_INT >= 23) {
-            return true;
-        } else {
-            return false;
-        }
+        return Build.VERSION.SDK_INT >= 23;
     }
 
     @Override
     public boolean canSetSpeed() {
-        if(Build.VERSION.SDK_INT >= 23) {
-            return true;
-        } else {
-            return false;
-        }
+        return Build.VERSION.SDK_INT >= 23;
     }
 
     @Override
