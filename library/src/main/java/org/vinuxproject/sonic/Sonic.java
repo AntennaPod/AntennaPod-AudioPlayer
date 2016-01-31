@@ -66,9 +66,8 @@ public class Sonic {
                       short source[],
                       int sourcePos,
                       int numSamples) {
-        for (int xSample = 0; xSample < numSamples * numChannels; xSample++) {
-            dest[destPos * numChannels + xSample] = source[sourcePos * numChannels + xSample];
-        }
+        System.arraycopy(source, sourcePos * numChannels + 0, dest, destPos * numChannels + 0,
+                numSamples * numChannels);
     }
 
     // Scale the samples by the factor.
