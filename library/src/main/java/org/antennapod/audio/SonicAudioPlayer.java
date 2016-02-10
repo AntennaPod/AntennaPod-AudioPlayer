@@ -612,6 +612,9 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
     @SuppressWarnings("deprecation")
     public void decode() {
         mDecoderThread = new Thread(new Runnable() {
+
+            private int currHeadPos;
+
             @Override
             public void run() {
 
@@ -625,6 +628,7 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
                 boolean sawOutputEOS = false;
 
                 while (!sawInputEOS && !sawOutputEOS && mContinue) {
+                    currHeadPos = mTrack.getPlaybackHeadPosition();
                     if (mCurrentState == STATE_PAUSED) {
                         System.out.println("Decoder changed to PAUSED");
                         try {
@@ -736,7 +740,18 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
                 Log.d(TAG_TRACK, "Duration: " + (int) (mDuration / 1000));
                 Log.d(TAG_TRACK, "Current position: " + (int) (mExtractor.getSampleTime() / 1000));
                 mCodec.stop();
+
+                // wait for track to finish playing
+                int lastHeadPos;
+                do {
+                    lastHeadPos = currHeadPos;
+                    try {
+                        Thread.sleep(100);
+                        currHeadPos = mTrack.getPlaybackHeadPosition();
+                    } catch (InterruptedException e) { /* ignore */ }
+                } while(currHeadPos != lastHeadPos);
                 mTrack.stop();
+
                 Log.d(TAG_TRACK, "Stopped codec and track");
                 Log.d(TAG_TRACK, "Current position: " + (int) (mExtractor.getSampleTime() / 1000));
                 mIsDecoding = false;
