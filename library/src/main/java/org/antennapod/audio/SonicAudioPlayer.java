@@ -332,8 +332,7 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
                 }
             }
         } catch (InterruptedException e) {
-            Log.e(TAG_TRACK,
-                    "Interrupted in reset while waiting for decoder thread to stop.",
+            Log.e(TAG_TRACK, "Interrupted in reset while waiting for decoder thread to stop.",
                     e);
         }
         if (mCodec != null) {
@@ -724,12 +723,20 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
                             mTrack.stop();
                             mLock.lock();
                             mTrack.release();
-                            final MediaFormat oformat = mCodec.getOutputFormat();
-                            Log.d("PCM", "Output format has changed to" + oformat);
-                            initDevice(
-                                    oformat.getInteger(MediaFormat.KEY_SAMPLE_RATE),
-                                    oformat.getInteger(MediaFormat.KEY_CHANNEL_COUNT));
-                            outputBuffers = mCodec.getOutputBuffers();
+                            final MediaFormat oFormat = mCodec.getOutputFormat();
+                            Log.d("PCM", "Output format has changed to" + oFormat);
+                            try {
+                                int sampleRate = oFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE);
+                                int channelCount = oFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
+                                initDevice(sampleRate, channelCount);
+                                outputBuffers = mCodec.getOutputBuffers();
+                            } catch(Throwable t) {
+                                Log.e(TAG, Log.getStackTraceString(t));
+                                error();
+                            }
+                            if(mTrack.getState() != AudioTrack.STATE_INITIALIZED) {
+                                error();
+                            }
                             mTrack.play();
                             mLock.unlock();
                         }
