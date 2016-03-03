@@ -367,7 +367,7 @@ public class MediaPlayer {
             Log.d(MP_TAG, "setupMpi");
             // Check if the client wants to use the service at all,
             // then if we're already using the right kind of media player
-            if(useSonic()) {
+            if(useSonic() && this.smp != null) {
                 if(mpi != null && mpi instanceof SonicAudioPlayer) {
                     Log.d(MP_TAG, "Already using SonicMediaPlayer");
                     return;
