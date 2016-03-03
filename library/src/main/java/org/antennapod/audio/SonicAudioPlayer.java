@@ -720,20 +720,20 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
                             outputBuffers = mCodec.getOutputBuffers();
                             Log.d("PCM", "Output buffers changed");
                         } else if (res == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
-                            mTrack.stop();
-                            mLock.lock();
-                            mTrack.release();
                             final MediaFormat oFormat = mCodec.getOutputFormat();
                             Log.d("PCM", "Output format has changed to " + oFormat);
                             int sampleRate = oFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE);
                             int channelCount = oFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
                             if (sampleRate != mSonic.getSampleRate() ||
                                     channelCount != mSonic.getNumChannels()) {
+                                mTrack.stop();
+                                mLock.lock();
+                                mTrack.release();
                                 initDevice(sampleRate, channelCount);
                                 outputBuffers = mCodec.getOutputBuffers();
+                                mTrack.play();
+                                mLock.unlock();
                             }
-                            mTrack.play();
-                            mLock.unlock();
                         }
                     } while (res == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED ||
                             res == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED);
