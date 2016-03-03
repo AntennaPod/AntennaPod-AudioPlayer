@@ -724,24 +724,29 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
                             mLock.lock();
                             mTrack.release();
                             final MediaFormat oFormat = mCodec.getOutputFormat();
-                            Log.d("PCM", "Output format has changed to" + oFormat);
+                            Log.d("PCM", "Output format has changed to " + oFormat);
                             try {
                                 int sampleRate = oFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE);
+                                Log.d(TAG, "new sample rate: " + sampleRate);
                                 int channelCount = oFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
-                                initDevice(sampleRate, channelCount);
-                                outputBuffers = mCodec.getOutputBuffers();
+                                Log.d(TAG, "new channel count: " + channelCount);
+                                if(sampleRate > 0 && channelCount > 0) {
+                                    initDevice(sampleRate, channelCount);
+                                    outputBuffers = mCodec.getOutputBuffers();
+                                }
                             } catch(Throwable t) {
                                 Log.e(TAG, Log.getStackTraceString(t));
                                 error();
                             }
                             if(mTrack.getState() != AudioTrack.STATE_INITIALIZED) {
                                 error();
+                            } else {
+                                mTrack.play();
                             }
-                            mTrack.play();
                             mLock.unlock();
                         }
-                    } while (res == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED
-                            || res == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED);
+                    } while (res == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED ||
+                            res == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED);
                 }
                 Log.d(TAG_TRACK, "Decoding loop exited. Stopping codec and track");
                 Log.d(TAG_TRACK, "Duration: " + (int) (mDuration / 1000));
