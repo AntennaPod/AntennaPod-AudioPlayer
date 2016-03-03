@@ -725,24 +725,14 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
                             mTrack.release();
                             final MediaFormat oFormat = mCodec.getOutputFormat();
                             Log.d("PCM", "Output format has changed to " + oFormat);
-                            try {
-                                int sampleRate = oFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE);
-                                Log.d(TAG, "new sample rate: " + sampleRate);
-                                int channelCount = oFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
-                                Log.d(TAG, "new channel count: " + channelCount);
-                                if(sampleRate > 0 && channelCount > 0) {
-                                    initDevice(sampleRate, channelCount);
-                                    outputBuffers = mCodec.getOutputBuffers();
-                                }
-                            } catch(Throwable t) {
-                                Log.e(TAG, Log.getStackTraceString(t));
-                                error();
+                            int sampleRate = oFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE);
+                            int channelCount = oFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
+                            if (sampleRate != mSonic.getSampleRate() ||
+                                    channelCount != mSonic.getNumChannels()) {
+                                initDevice(sampleRate, channelCount);
+                                outputBuffers = mCodec.getOutputBuffers();
                             }
-                            if(mTrack.getState() != AudioTrack.STATE_INITIALIZED) {
-                                error();
-                            } else {
-                                mTrack.play();
-                            }
+                            mTrack.play();
                             mLock.unlock();
                         }
                     } while (res == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED ||
@@ -788,6 +778,13 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
                 synchronized (mDecoderLock) {
                     mDecoderLock.notifyAll();
                 }
+            }
+        });
+        mDecoderThread.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+            @Override
+            public void uncaughtException(Thread thread, Throwable ex) {
+                Log.e(TAG_TRACK, Log.getStackTraceString(ex));
+                error();
             }
         });
         mDecoderThread.setDaemon(true);
