@@ -520,10 +520,22 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
         mLock.lock();
         mExtractor = new MediaExtractor();
         if (mPath != null) {
-            mExtractor.setDataSource(mPath);
+            try {
+                mExtractor.setDataSource(mPath);
+            } catch (Exception e) {
+                mLock.unlock();
+                throw e;
+            }
+
         } else if (mUri != null) {
-            mExtractor.setDataSource(mContext, mUri, null);
+            try {
+                mExtractor.setDataSource(mContext, mUri, null);
+            } catch (Exception e) {
+                mLock.unlock();
+                throw e;
+            }
         } else {
+            mLock.unlock();
             throw new IOException();
         }
 
@@ -539,6 +551,7 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
         }
 
         if(trackNum < 0) {
+            mLock.unlock();
             throw new IOException("No audio track found");
         }
 
