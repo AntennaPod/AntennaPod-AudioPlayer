@@ -204,17 +204,20 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
         switch (mCurrentState) {
             case STATE_INITIALIZED:
             case STATE_STOPPED:
+                boolean streamInitialized = false;
                 try {
-                    initStream();
+                    streamInitialized = initStream();
                 } catch (IOException e) {
                     Log.e(TAG_TRACK, "Failed setting data source!", e);
                     error();
                     return;
                 }
-                mCurrentState = STATE_PREPARED;
-                Log.d(TAG_TRACK, "State changed to STATE_PREPARED");
-                if(owningMediaPlayer.onPreparedListener != null) {
-                    owningMediaPlayer.onPreparedListener.onPrepared(owningMediaPlayer);
+                if (streamInitialized) {
+                    mCurrentState = STATE_PREPARED;
+                    Log.d(TAG_TRACK, "State changed to STATE_PREPARED");
+                    if (owningMediaPlayer.onPreparedListener != null) {
+                        owningMediaPlayer.onPreparedListener.onPrepared(owningMediaPlayer);
+                    }
                 }
                 break;
             default:
@@ -232,19 +235,26 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
                 Thread t = new Thread(new Runnable() {
                     @Override
                     public void run() {
+                        boolean streamInitialized = false;
+                        String lastPath = currentPath();
+
                         try {
-                            initStream();
+                            streamInitialized = initStream();
                         } catch (IOException e) {
-                            Log.e(TAG_TRACK, "Failed setting data source!", e);
-                            error();
+                            if (lastPath.equals(currentPath())) {
+                                Log.e(TAG_TRACK, "Failed setting data source!", e);
+                                error();
+                            }
                             return;
                         }
-                        if (mCurrentState != STATE_ERROR) {
-                            mCurrentState = STATE_PREPARED;
-                            Log.d(TAG_TRACK, "State changed to STATE_PREPARED");
-                        }
-                        if(owningMediaPlayer.onPreparedListener != null) {
-                            owningMediaPlayer.onPreparedListener.onPrepared(owningMediaPlayer);
+                        if (streamInitialized) {
+                            if (mCurrentState != STATE_ERROR) {
+                                mCurrentState = STATE_PREPARED;
+                                Log.d(TAG_TRACK, "State changed to STATE_PREPARED");
+                            }
+                            if (owningMediaPlayer.onPreparedListener != null) {
+                                owningMediaPlayer.onPreparedListener.onPrepared(owningMediaPlayer);
+                            }
                         }
                     }
                 });
@@ -347,6 +357,8 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
             mTrack.release();
             mTrack = null;
         }
+        mPath = null;
+        mUri = null;
         mCurrentState = STATE_IDLE;
         Log.d(TAG_TRACK, "State changed to STATE_IDLE");
         mLock.unlock();
@@ -516,66 +528,78 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
         }
     }
 
-    public void initStream() throws IOException {
-        mLock.lock();
-        mExtractor = new MediaExtractor();
+    private String currentPath() {
         if (mPath != null) {
-            try {
-                mExtractor.setDataSource(mPath);
-            } catch (Exception e) {
-                mLock.unlock();
-                throw e;
-            }
+            return mPath;
+        }
+        else if (mUri != null) {
+            return mUri.toString();
+        }
 
-        } else if (mUri != null) {
-            try {
-                mExtractor.setDataSource(mContext, mUri, null);
-            } catch (Exception e) {
-                mLock.unlock();
-                throw e;
-            }
-        } else {
-            mLock.unlock();
+        return null;
+    }
+
+    public boolean initStream() throws IOException {
+        mExtractor = new MediaExtractor();
+
+        String lastPath = currentPath();
+
+        if (mPath != null) {
+            mExtractor.setDataSource(mPath);
+        }
+        else if (mUri != null) {
+            mExtractor.setDataSource(mContext, mUri, null);
+        }
+        else {
             throw new IOException();
         }
 
-        int trackNum = -1;
-        for(int i=0; i < mExtractor.getTrackCount(); i++) {
-            final MediaFormat oFormat = mExtractor.getTrackFormat(i);
-            String mime = oFormat.getString(MediaFormat.KEY_MIME);
-            if(trackNum < 0 &&  mime.startsWith("audio/")) {
-                trackNum = i;
-            } else {
-                mExtractor.unselectTrack(i);
+        if (lastPath.equals(currentPath())) {
+
+            mLock.lock();
+            int trackNum = -1;
+            for (int i = 0; i < mExtractor.getTrackCount(); i++) {
+                final MediaFormat oFormat = mExtractor.getTrackFormat(i);
+                String mime = oFormat.getString(MediaFormat.KEY_MIME);
+                if (trackNum < 0 && mime.startsWith("audio/")) {
+                    trackNum = i;
+                }
+                else {
+                    mExtractor.unselectTrack(i);
+                }
             }
-        }
 
-        if(trackNum < 0) {
+            if (trackNum < 0) {
+                mLock.unlock();
+                throw new IOException("No audio track found");
+            }
+
+            final MediaFormat oFormat = mExtractor.getTrackFormat(trackNum);
+            try {
+                int sampleRate = oFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE);
+                int channelCount = oFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
+                final String mime = oFormat.getString(MediaFormat.KEY_MIME);
+                mDuration = oFormat.getLong(MediaFormat.KEY_DURATION);
+
+                Log.v(TAG_TRACK, "Sample rate: " + sampleRate);
+                Log.v(TAG_TRACK, "Channel count: " + channelCount);
+                Log.v(TAG_TRACK, "Mime type: " + mime);
+                Log.v(TAG_TRACK, "Duration: " + mDuration);
+
+                initDevice(sampleRate, channelCount);
+                mExtractor.selectTrack(trackNum);
+                mCodec = MediaCodec.createDecoderByType(mime);
+                mCodec.configure(oFormat, null, null, 0);
+            } catch (Throwable th) {
+                Log.e(TAG, Log.getStackTraceString(th));
+                error();
+            }
             mLock.unlock();
-            throw new IOException("No audio track found");
+
+            return true;
         }
 
-        final MediaFormat oFormat = mExtractor.getTrackFormat(trackNum);
-        try {
-            int sampleRate = oFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE);
-            int channelCount = oFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
-            final String mime = oFormat.getString(MediaFormat.KEY_MIME);
-            mDuration = oFormat.getLong(MediaFormat.KEY_DURATION);
-
-            Log.v(TAG_TRACK, "Sample rate: " + sampleRate);
-            Log.v(TAG_TRACK, "Channel count: " + channelCount);
-            Log.v(TAG_TRACK, "Mime type: " + mime);
-            Log.v(TAG_TRACK, "Duration: " + mDuration);
-
-            initDevice(sampleRate, channelCount);
-            mExtractor.selectTrack(trackNum);
-            mCodec = MediaCodec.createDecoderByType(mime);
-            mCodec.configure(oFormat, null, null, 0);
-        } catch(Throwable th) {
-            Log.e(TAG, Log.getStackTraceString(th));
-            error();
-        }
-        mLock.unlock();
+        return false;
     }
 
     private void initDevice(int sampleRate, int numChannels) {
