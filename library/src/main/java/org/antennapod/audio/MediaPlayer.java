@@ -361,6 +361,12 @@ public class MediaPlayer {
         setupMpi(this.mpi.mContext);
     }
 
+    protected void checkMpi() {
+        if(this.invalidServiceConnectionConfiguration()) {
+            this.setupMpi(this.mpi.mContext);
+        }
+    }
+
     private void setupMpi(final Context context) {
         lock.lock();
         try {
@@ -563,16 +569,16 @@ public class MediaPlayer {
                     // when getCurrentPosition is called
                     seekPos = this.lastKnownPosition;
                 }
-                to.muteNextSeek();
-                to.seekTo(seekPos);
+                if(seekPos > 0) {
+                    to.muteNextSeek();
+                    to.seekTo(seekPos);
+                }
             }
-            if ((from != null)
-                    && from.isPlaying()) {
+            if (from != null && from.isPlaying()) {
                 from.pause();
             }
-            if ((this.state == State.STARTED)
-                    || (this.state == State.PAUSED)
-                    || (this.state == State.STOPPED)) {
+            if (this.state == State.STARTED || this.state == State.PAUSED ||
+                    this.state == State.STOPPED) {
                 Log.d(MP_TAG, "switchMediaPlayerImpl(): start");
                 to.start();
             }
@@ -592,15 +598,13 @@ public class MediaPlayer {
             // on(Pitch|Speed)AdjustmentAvailableChanged
             if ((to.canSetPitch() != this.pitchAdjustmentAvailable)
                     && (this.onPitchAdjustmentAvailableChangedListener != null)) {
-                this.onPitchAdjustmentAvailableChangedListener
-                        .onPitchAdjustmentAvailableChanged(this, to
-                                .canSetPitch());
+                this.onPitchAdjustmentAvailableChangedListener.onPitchAdjustmentAvailableChanged(
+                        this, to.canSetPitch());
             }
             if ((to.canSetSpeed() != this.speedAdjustmentAvailable)
                     && (this.onSpeedAdjustmentAvailableChangedListener != null)) {
-                this.onSpeedAdjustmentAvailableChangedListener
-                        .onSpeedAdjustmentAvailableChanged(this, to
-                                .canSetSpeed());
+                this.onSpeedAdjustmentAvailableChangedListener.onSpeedAdjustmentAvailableChanged(
+                        this, to.canSetSpeed());
             }
             Log.d(MP_TAG, "switchMediaPlayerImpl() " + this.state.toString());
         } finally {
@@ -838,9 +842,7 @@ public class MediaPlayer {
     public void pause() {
         lock.lock();
         try {
-            if (invalidServiceConnectionConfiguration()) {
-                setupMpi(this.mpi.mContext);
-            }
+            checkMpi();
             this.state = State.PAUSED;
             this.mpi.pause();
         } finally {
@@ -858,9 +860,7 @@ public class MediaPlayer {
             Log.d(MP_TAG, "prepare() using " + ((this.mpi == null) ? "null (this shouldn't happen)" : this.mpi.getClass().toString()) + " state " + this.state.toString());
             Log.d(MP_TAG, "onPreparedListener is: " + ((this.onPreparedListener == null) ? "null" : "non-null"));
             Log.d(MP_TAG, "preparedListener is: " + ((this.preparedListener == null) ? "null" : "non-null"));
-            if (invalidServiceConnectionConfiguration()) {
-                setupMpi(this.mpi.mContext);
-            }
+            checkMpi();
             this.mpi.prepare();
             this.state = State.PREPARED;
             Log.d(MP_TAG, "prepare() finished");
@@ -877,9 +877,7 @@ public class MediaPlayer {
         lock.lock();
         try {
             Log.d(MP_TAG, "prepareAsync()");
-            if (invalidServiceConnectionConfiguration()) {
-                setupMpi(this.mpi.mContext);
-            }
+            checkMpi();
             this.state = State.PREPARING;
             this.mpi.prepareAsync();
         } finally {
@@ -972,9 +970,7 @@ public class MediaPlayer {
         lock.lock();
         try {
             Log.d(MP_TAG, "In setDataSource(context, " + uri.toString() + "), using " + this.mpi.getClass().toString());
-            if (invalidServiceConnectionConfiguration()) {
-                setupMpi(this.mpi.mContext);
-            }
+            checkMpi();
             this.state = State.INITIALIZED;
             this.stringDataSource = null;
             this.uriDataSource = uri;
@@ -993,9 +989,7 @@ public class MediaPlayer {
         lock.lock();
         try {
             Log.d(MP_TAG, "In setDataSource(context, " + path + ")");
-            if (invalidServiceConnectionConfiguration()) {
-                setupMpi(this.mpi.mContext);
-            }
+            checkMpi();
             this.state = State.INITIALIZED;
             this.stringDataSource = path;
             this.uriDataSource = null;
@@ -1255,9 +1249,7 @@ public class MediaPlayer {
         lock.lock();
         try {
             Log.d(MP_TAG, "start()");
-            if (invalidServiceConnectionConfiguration()) {
-                setupMpi(this.mpi.mContext);
-            }
+            checkMpi();
             this.state = State.STARTED;
             this.mpi.start();
         } finally {
@@ -1272,9 +1264,7 @@ public class MediaPlayer {
     public void stop() {
         lock.lock();
         try {
-            if (invalidServiceConnectionConfiguration()) {
-                setupMpi(this.mpi.mContext);
-            }
+            checkMpi();
             this.state = State.STOPPED;
             this.mpi.stop();
         } finally {
