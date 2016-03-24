@@ -569,16 +569,16 @@ public class MediaPlayer {
                     // when getCurrentPosition is called
                     seekPos = this.lastKnownPosition;
                 }
-                to.muteNextSeek();
-                to.seekTo(seekPos);
+                if(seekPos > 0) {
+                    to.muteNextSeek();
+                    to.seekTo(seekPos);
+                }
             }
-            if ((from != null)
-                    && from.isPlaying()) {
+            if (from != null && from.isPlaying()) {
                 from.pause();
             }
-            if ((this.state == State.STARTED)
-                    || (this.state == State.PAUSED)
-                    || (this.state == State.STOPPED)) {
+            if (this.state == State.STARTED || this.state == State.PAUSED ||
+                    this.state == State.STOPPED) {
                 Log.d(MP_TAG, "switchMediaPlayerImpl(): start");
                 to.start();
             }
