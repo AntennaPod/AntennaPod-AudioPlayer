@@ -392,9 +392,16 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
 
                         mSeekingCount.incrementAndGet();
 
-                        mExtractor.seekTo(((long) msec * 1000), MediaExtractor.SEEK_TO_PREVIOUS_SYNC);
-
-                        mSeekingCount.decrementAndGet();
+                        try {
+                            mExtractor.seekTo(((long) msec * 1000), MediaExtractor.SEEK_TO_PREVIOUS_SYNC);
+                        }
+                        catch (Exception e) {
+                            error();
+                            return;
+                        }
+                        finally {
+                            mSeekingCount.decrementAndGet();
+                        }
 
                         // make sure that the current episode didn't change while seeking
                         if ((mExtractor != null) && lastPath.equals(currentPath()) && (mCurrentState != STATE_ERROR)) {
@@ -567,26 +574,32 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
     }
 
     public boolean initStream() throws IOException {
-        mInitiatingCount.incrementAndGet();
 
-        mExtractor = new MediaExtractor();
-
-        // Save the current path. When "setDataSource" returns, the current media file could have changed
+        // Since this method could be running in another thread, when "setDataSource" returns
+        // we need to check if the media path has changed
         String lastPath = currentPath();
 
-        if (mPath != null) {
-            mExtractor.setDataSource(mPath);
+        mInitiatingCount.incrementAndGet();
+
+        try {
+            mExtractor = new MediaExtractor();
+
+            if (mPath != null) {
+                mExtractor.setDataSource(mPath);
+            }
+            else if (mUri != null) {
+                mExtractor.setDataSource(mContext, mUri, null);
+            }
+            else {
+                throw new IOException();
+            }
         }
-        else if (mUri != null) {
-            mExtractor.setDataSource(mContext, mUri, null);
+        catch (IOException e) {
+            throw  e;
         }
-        else {
+        finally {
             mInitiatingCount.decrementAndGet();
-
-            throw new IOException();
         }
-
-        mInitiatingCount.decrementAndGet();
 
         if (!lastPath.equals(currentPath()) || (mCurrentState == STATE_ERROR)) {
             return false;
