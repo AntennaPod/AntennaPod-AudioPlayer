@@ -36,6 +36,7 @@ import org.vinuxproject.sonic.Sonic;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
@@ -56,7 +57,7 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
     private final Object mDecoderLock;
     private boolean mContinue;
     private boolean mIsInitiating;
-    private boolean mIsSeeking;
+    private AtomicInteger mSeekingCount = new AtomicInteger(0);
     private boolean mIsDecoding;
     private long mDuration;
     private float mCurrentSpeed;
@@ -383,20 +384,22 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
 
                 final boolean wasPlaying = playing;
 
+                // the seeking is started in another thread to prevent UI locking
                 Thread t = new Thread(new Runnable() {
                     @Override
                     public void run() {
                         String lastPath = currentPath();
 
-                        mIsSeeking = true;
+                        mSeekingCount.incrementAndGet();
 
                         mExtractor.seekTo(((long) msec * 1000), MediaExtractor.SEEK_TO_PREVIOUS_SYNC);
 
-                        mIsSeeking = false;
+                        mSeekingCount.decrementAndGet();
 
+                        // make sure that the current episode didn't change while seeking
                         if ((mExtractor != null) && lastPath.equals(currentPath()) && (mCurrentState != STATE_ERROR)) {
 
-                            Log.d(TAG, "seek completed, position: " + (mExtractor.getSampleTime() / 1000L));
+                            Log.d(TAG, "seek completed, position: " + getCurrentPosition());
 
                             if (owningMediaPlayer.onSeekCompleteListener != null) {
                                 owningMediaPlayer.onSeekCompleteListener.onSeekComplete(owningMediaPlayer);
@@ -814,8 +817,8 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
                 Log.d(TAG_TRACK, "Decoding loop exited. Stopping codec and track");
                 Log.d(TAG_TRACK, "Duration: " + (int) (mDuration / 1000));
 
-                if (!(mIsInitiating || mIsSeeking)) {
-                    Log.d(TAG_TRACK, "Current position: " + (int) (mExtractor.getSampleTime() / 1000));
+                if (!(mIsInitiating || (mSeekingCount.get() > 0))) {
+                    Log.d(TAG_TRACK, "Current position: " + getCurrentPosition());
                 }
                 mCodec.stop();
 
@@ -832,8 +835,8 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
 
                 Log.d(TAG_TRACK, "Stopped codec and track");
 
-                if (!(mIsInitiating || mIsSeeking)) {
-                    Log.d(TAG_TRACK, "Current position: " + (int) (mExtractor.getSampleTime() / 1000));
+                if (!(mIsInitiating || (mSeekingCount.get() > 0))) {
+                    Log.d(TAG_TRACK, "Current position: " + getCurrentPosition());
                 }
                 mIsDecoding = false;
                 if (mContinue && (sawInputEOS || sawOutputEOS)) {
