@@ -56,7 +56,7 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
     private final ReentrantLock mLock;
     private final Object mDecoderLock;
     private boolean mContinue;
-    private boolean mIsInitiating;
+    private AtomicInteger mInitiatingCount = new AtomicInteger(0);
     private AtomicInteger mSeekingCount = new AtomicInteger(0);
     private boolean mIsDecoding;
     private long mDuration;
@@ -567,7 +567,7 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
     }
 
     public boolean initStream() throws IOException {
-        mIsInitiating = true;
+        mInitiatingCount.incrementAndGet();
 
         mExtractor = new MediaExtractor();
 
@@ -581,12 +581,12 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
             mExtractor.setDataSource(mContext, mUri, null);
         }
         else {
-            mIsInitiating = false;
+            mInitiatingCount.decrementAndGet();
 
             throw new IOException();
         }
 
-        mIsInitiating = false;
+        mInitiatingCount.decrementAndGet();
 
         if (!lastPath.equals(currentPath()) || (mCurrentState == STATE_ERROR)) {
             return false;
@@ -817,7 +817,7 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
                 Log.d(TAG_TRACK, "Decoding loop exited. Stopping codec and track");
                 Log.d(TAG_TRACK, "Duration: " + (int) (mDuration / 1000));
 
-                if (!(mIsInitiating || (mSeekingCount.get() > 0))) {
+                if (!((mInitiatingCount.get() > 0) || (mSeekingCount.get() > 0))) {
                     Log.d(TAG_TRACK, "Current position: " + getCurrentPosition());
                 }
                 mCodec.stop();
@@ -835,7 +835,7 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
 
                 Log.d(TAG_TRACK, "Stopped codec and track");
 
-                if (!(mIsInitiating || (mSeekingCount.get() > 0))) {
+                if (!((mInitiatingCount.get() > 0) || (mSeekingCount.get() > 0))) {
                     Log.d(TAG_TRACK, "Current position: " + getCurrentPosition());
                 }
                 mIsDecoding = false;
