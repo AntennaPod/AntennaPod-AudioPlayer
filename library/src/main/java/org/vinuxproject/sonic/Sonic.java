@@ -12,7 +12,6 @@
  */
 
 
-
 package org.vinuxproject.sonic;
 
 public class Sonic {
@@ -516,7 +515,7 @@ public class Sonic {
     private int findPitchPeriod(short samples[],
                                 int position,
                                 boolean preferNewPeriod) {
-        int[] diffs = { 0,0 }; // 0: minDiff, 1: maxDiff; for mutability
+        int[] diffs = {0, 0}; // 0: minDiff, 1: maxDiff; for mutability
         int period, retPeriod;
         int skip = 1;
 

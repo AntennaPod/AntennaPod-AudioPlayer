@@ -299,7 +299,7 @@ public class MediaPlayer {
         // so start with an android.media.MediaPlayer, and when
         // the service is connected, use that from then on
         this.mpi = this.amp = new AndroidAudioPlayer(this, context);
-        if(Build.VERSION.SDK_INT >= 16) {
+        if (Build.VERSION.SDK_INT >= 16) {
             this.smp = new SonicAudioPlayer(this, context);
             this.smp.setDownMix(downmix());
         }
@@ -319,9 +319,9 @@ public class MediaPlayer {
     }
 
     private boolean invalidServiceConnectionConfiguration() {
-        if(smp != null) {
+        if (smp != null) {
             boolean usingSonic = this.mpi instanceof SonicAudioPlayer;
-            if((usingSonic && !useSonic()) || (!usingSonic && useSonic())) {
+            if ((usingSonic && !useSonic()) || (!usingSonic && useSonic())) {
                 return true;
             }
         }
@@ -362,7 +362,7 @@ public class MediaPlayer {
     }
 
     protected void checkMpi() {
-        if(this.invalidServiceConnectionConfiguration()) {
+        if (this.invalidServiceConnectionConfiguration()) {
             this.setupMpi(this.mpi.mContext);
         }
     }
@@ -373,8 +373,8 @@ public class MediaPlayer {
             Log.d(MP_TAG, "setupMpi");
             // Check if the client wants to use the service at all,
             // then if we're already using the right kind of media player
-            if(useSonic() && this.smp != null) {
-                if(mpi != null && mpi instanceof SonicAudioPlayer) {
+            if (useSonic() && this.smp != null) {
+                if (mpi != null && mpi instanceof SonicAudioPlayer) {
                     Log.d(MP_TAG, "Already using SonicMediaPlayer");
                     return;
                 } else {
@@ -569,7 +569,7 @@ public class MediaPlayer {
                     // when getCurrentPosition is called
                     seekPos = this.lastKnownPosition;
                 }
-                if(seekPos > 0) {
+                if (seekPos > 0) {
                     to.muteNextSeek();
                     to.seekTo(seekPos);
                 }

@@ -38,8 +38,7 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
                             && (owningMediaPlayer.mpi == AndroidAudioPlayer.this)) {
                         owningMediaPlayer.onBufferingUpdateListener.onBufferingUpdate(owningMediaPlayer, percent);
                     }
-                }
-                finally {
+                } finally {
                     owningMediaPlayer.lock.unlock();
                 }
             }
@@ -56,8 +55,7 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
                     if (owningMediaPlayer.onCompletionListener != null) {
                         owningMediaPlayer.onCompletionListener.onCompletion(owningMediaPlayer);
                     }
-                }
-                finally {
+                } finally {
                     owningMediaPlayer.lock.unlock();
                 }
             }
@@ -73,8 +71,7 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
                     if (owningMediaPlayer.onErrorListener != null) {
                         return owningMediaPlayer.onErrorListener.onError(owningMediaPlayer, what, extra);
                     }
-                }
-                finally {
+                } finally {
                     owningMediaPlayer.lock.unlock();
                 }
             }
@@ -91,8 +88,7 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
                             && (owningMediaPlayer.mpi == AndroidAudioPlayer.this)) {
                         return owningMediaPlayer.onInfoListener.onInfo(owningMediaPlayer, what, extra);
                     }
-                }
-                finally {
+                } finally {
                     owningMediaPlayer.lock.unlock();
                 }
             }
@@ -113,16 +109,14 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
                 try {
                     if (AndroidAudioPlayer.this.muteOnPreparedCount > 0) {
                         AndroidAudioPlayer.this.muteOnPreparedCount--;
-                    }
-                    else {
+                    } else {
                         AndroidAudioPlayer.this.muteOnPreparedCount = 0;
                         if (AndroidAudioPlayer.this.owningMediaPlayer.onPreparedListener != null) {
                             Log.d(AMP_TAG, "Invoking AndroidMediaPlayer.this.owningMediaPlayer.onPreparedListener.onPrepared");
                             AndroidAudioPlayer.this.owningMediaPlayer.onPreparedListener.onPrepared(AndroidAudioPlayer.this.owningMediaPlayer);
                         }
                     }
-                }
-                finally {
+                } finally {
                     AndroidAudioPlayer.this.lockMuteOnPreparedCount.unlock();
                 }
                 if (owningMediaPlayer.mpi != AndroidAudioPlayer.this) {
@@ -141,19 +135,16 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
                     try {
                         if (AndroidAudioPlayer.this.muteOnSeekCount > 0) {
                             AndroidAudioPlayer.this.muteOnSeekCount--;
-                        }
-                        else {
+                        } else {
                             AndroidAudioPlayer.this.muteOnSeekCount = 0;
                             if (AndroidAudioPlayer.this.owningMediaPlayer.onSeekCompleteListener != null) {
                                 owningMediaPlayer.onSeekCompleteListener.onSeekComplete(owningMediaPlayer);
                             }
                         }
-                    }
-                    finally {
+                    } finally {
                         lockMuteOnSeekCount.unlock();
                     }
-                }
-                finally {
+                } finally {
                     owningMediaPlayer.lock.unlock();
                 }
             }
@@ -209,8 +200,7 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
             return mp.getCurrentPosition();
         } catch (IllegalStateException e) {
             return -1;
-        }
-        finally {
+        } finally {
             owningMediaPlayer.lock.unlock();
         }
     }
@@ -225,10 +215,9 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
         owningMediaPlayer.lock.lock();
         try {
             return mp.getDuration();
-        } catch(IllegalStateException e) {
+        } catch (IllegalStateException e) {
             return -1;
-        }
-        finally {
+        } finally {
             owningMediaPlayer.lock.unlock();
         }
     }
@@ -248,10 +237,9 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
         owningMediaPlayer.lock.lock();
         try {
             return mp.isLooping();
-        } catch(IllegalStateException e) {
+        } catch (IllegalStateException e) {
             return false;
-        }
-        finally {
+        } finally {
             owningMediaPlayer.lock.unlock();
         }
     }
@@ -261,10 +249,9 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
         owningMediaPlayer.lock.lock();
         try {
             return mp.isPlaying();
-        } catch(IllegalStateException e) {
+        } catch (IllegalStateException e) {
             return false;
-        }
-        finally {
+        } finally {
             owningMediaPlayer.lock.unlock();
         }
     }
@@ -274,8 +261,7 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
         owningMediaPlayer.lock.lock();
         try {
             mp.pause();
-        }
-        finally {
+        } finally {
             owningMediaPlayer.lock.unlock();
         }
     }
@@ -287,8 +273,7 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
         try {
             mp.prepare();
             Log.d(AMP_TAG, "Finish prepare()");
-        }
-        finally {
+        } finally {
             owningMediaPlayer.lock.unlock();
         }
     }
@@ -306,10 +291,9 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
                 Log.d(AMP_TAG, "mp.release()");
                 mp.release();
             }
-        } catch(IllegalStateException e) {
+        } catch (IllegalStateException e) {
             // ignore
-        }
-        finally {
+        } finally {
             owningMediaPlayer.lock.unlock();
         }
     }
@@ -319,7 +303,7 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
         owningMediaPlayer.lock.lock();
         try {
             mp.reset();
-        } catch(IllegalStateException e) {
+        } catch (IllegalStateException e) {
             Log.e(AMP_TAG, Log.getStackTraceString(e));
         } finally {
             owningMediaPlayer.lock.unlock();
@@ -332,8 +316,7 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
         try {
             mp.setOnSeekCompleteListener(this.onSeekCompleteListener);
             mp.seekTo(msec);
-        }
-        finally {
+        } finally {
             owningMediaPlayer.lock.unlock();
         }
     }
@@ -343,8 +326,7 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
         owningMediaPlayer.lock.lock();
         try {
             mp.setAudioStreamType(streamtype);
-        }
-        finally {
+        } finally {
             owningMediaPlayer.lock.unlock();
         }
     }
@@ -356,8 +338,7 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
         try {
             Log.d(AMP_TAG, "setDataSource(context, " + uri.toString() + ")");
             mp.setDataSource(context, uri);
-        }
-        finally {
+        } finally {
             owningMediaPlayer.lock.unlock();
         }
     }
@@ -369,8 +350,7 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
         try {
             Log.d(AMP_TAG, "setDataSource(" + path + ")");
             mp.setDataSource(path);
-        }
-        finally {
+        } finally {
             owningMediaPlayer.lock.unlock();
         }
     }
@@ -385,15 +365,14 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
         owningMediaPlayer.lock.lock();
         try {
             mp.setLooping(loop);
-        }
-        finally {
+        } finally {
             owningMediaPlayer.lock.unlock();
         }
     }
 
     @Override
     public void setPitchStepsAdjustment(float pitchSteps) {
-        if(Build.VERSION.SDK_INT < 23) {
+        if (Build.VERSION.SDK_INT < 23) {
             return;
         }
         PlaybackParams params = mp.getPlaybackParams();
@@ -422,7 +401,7 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
         params.setSpeed(f);
         boolean isPaused = this.owningMediaPlayer.state == org.antennapod.audio.MediaPlayer.State.PAUSED;
         mp.setPlaybackParams(params);
-        if(isPaused) {
+        if (isPaused) {
             mp.pause();
         }
     }
@@ -437,8 +416,7 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
         owningMediaPlayer.lock.lock();
         try {
             mp.setVolume(leftVolume, rightVolume);
-        }
-        finally {
+        } finally {
             owningMediaPlayer.lock.unlock();
         }
     }
@@ -450,8 +428,7 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
             if (mode != 0) {
                 mp.setWakeMode(context, mode);
             }
-        }
-        finally {
+        } finally {
             owningMediaPlayer.lock.unlock();
         }
     }
@@ -461,8 +438,7 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
         owningMediaPlayer.lock.lock();
         try {
             mp.start();
-        }
-        finally {
+        } finally {
             owningMediaPlayer.lock.unlock();
         }
     }
@@ -472,8 +448,7 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
         owningMediaPlayer.lock.lock();
         try {
             mp.stop();
-        }
-        finally {
+        } finally {
             owningMediaPlayer.lock.unlock();
         }
     }
