@@ -111,10 +111,8 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
                         AndroidAudioPlayer.this.muteOnPreparedCount--;
                     } else {
                         AndroidAudioPlayer.this.muteOnPreparedCount = 0;
-                        if (AndroidAudioPlayer.this.owningMediaPlayer.onPreparedListener != null) {
-                            Log.d(AMP_TAG, "Invoking AndroidMediaPlayer.this.owningMediaPlayer.onPreparedListener.onPrepared");
-                            AndroidAudioPlayer.this.owningMediaPlayer.onPreparedListener.onPrepared(AndroidAudioPlayer.this.owningMediaPlayer);
-                        }
+                        Log.d(AMP_TAG, "Invoking AndroidMediaPlayer.this.owningMediaPlayer.onPreparedListener.onPrepared");
+                        AndroidAudioPlayer.this.owningMediaPlayer.onPreparedListener.onPrepared(AndroidAudioPlayer.this.owningMediaPlayer);
                     }
                 } finally {
                     AndroidAudioPlayer.this.lockMuteOnPreparedCount.unlock();
