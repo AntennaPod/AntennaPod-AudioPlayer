@@ -43,6 +43,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class SonicAudioPlayer extends AbstractAudioPlayer {
 
     private static final String TAG = SonicAudioPlayer.class.getSimpleName();
+    private final static String TAG_TRACK = "SonicTrack";
 
     protected final MediaPlayer mMediaPlayer;
     private AudioTrack mTrack;
@@ -65,9 +66,8 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
     private int mCurrentState;
     private final Context mContext;
     private PowerManager.WakeLock mWakeLock = null;
-    private boolean mDownMix;
 
-    private final static String TAG_TRACK = "SonicTrack";
+    private boolean mDownMix;
 
     private final static int STATE_IDLE = 0;
     private final static int STATE_INITIALIZED = 1;
@@ -100,9 +100,8 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
     public int getAudioSessionId() {
         if (mTrack == null) {
             return 0;
-        } else {
-            return mTrack.getAudioSessionId();
         }
+        return mTrack.getAudioSessionId();
     }
 
     @Override
@@ -121,14 +120,10 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
     }
 
     public int getCurrentPosition() {
-        switch (mCurrentState) {
-            case STATE_ERROR:
-            case STATE_IDLE:
-            case STATE_INITIALIZED:
-                return 0;
-            default:
-                return (int) (mExtractor.getSampleTime() / 1000);
+        if (mCurrentState == STATE_INITIALIZED || mCurrentState == STATE_IDLE || mCurrentState == STATE_ERROR) {
+            return 0;
         }
+        return (int) (mExtractor.getSampleTime() / 1000);
     }
 
     @Override
@@ -147,16 +142,11 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
     }
 
     public int getDuration() {
-        switch (mCurrentState) {
-            case STATE_INITIALIZED:
-            case STATE_IDLE:
-            case STATE_ERROR:
-                error();
-                break;
-            default:
-                return (int) (mDuration / 1000);
+        if (mCurrentState == STATE_INITIALIZED || mCurrentState == STATE_IDLE || mCurrentState == STATE_ERROR) {
+            error();
+            return 0;
         }
-        return 0;
+        return (int) (mDuration / 1000);
     }
 
     @Override
@@ -175,121 +165,96 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
     }
 
     public boolean isPlaying() {
-        switch (mCurrentState) {
-            case STATE_ERROR:
-                error();
-                break;
-            default:
-                return mCurrentState == STATE_STARTED;
+        if (mCurrentState == STATE_ERROR) {
+            error();
+            return false;
         }
-        return false;
+        return mCurrentState == STATE_STARTED;
     }
 
     public void pause() {
-        Log.d(TAG, "pause(), current state: " + mCurrentState);
-        switch (mCurrentState) {
-            case STATE_PREPARED:
-                Log.d(TAG_TRACK, "Prepared, ignore pause()");
-                break;
-            case STATE_STARTED:
-            case STATE_PAUSED:
-                mTrack.pause();
-                mCurrentState = STATE_PAUSED;
-                Log.d(TAG_TRACK, "State changed to STATE_PAUSED");
-                break;
-            default:
-                error();
+        Log.d(TAG, "pause(), current state: " + stateToString(mCurrentState));
+        if (mCurrentState == STATE_PREPARED) {
+            Log.d(TAG_TRACK, "STATE_PREPARED, ignore pause()");
+            return;
         }
+        if (mCurrentState != STATE_STARTED && mCurrentState != STATE_PAUSED) {
+            error();
+            return;
+        }
+        mTrack.pause();
+        setCurrentState(STATE_PAUSED);
     }
 
     public void prepare() {
-        Log.d(TAG, "prepare(), current state: " + mCurrentState);
-        switch (mCurrentState) {
-            case STATE_INITIALIZED:
-            case STATE_STOPPED:
-                boolean streamInitialized = false;
-                try {
-                    streamInitialized = initStream();
-                } catch (IOException e) {
-                    Log.e(TAG_TRACK, "Failed setting data source!", e);
-                    error();
-                    return;
-                }
-                if (streamInitialized) {
-                    mCurrentState = STATE_PREPARED;
-                    Log.d(TAG_TRACK, "State changed to STATE_PREPARED");
-                    if (owningMediaPlayer.onPreparedListener != null) {
-                        owningMediaPlayer.onPreparedListener.onPrepared(owningMediaPlayer);
-                    }
-                }
-                break;
-            default:
-                error();
+        Log.d(TAG, "prepare(), current state: " + stateToString(mCurrentState));
+        if (mCurrentState != STATE_INITIALIZED && mCurrentState != STATE_STOPPED) {
+            error();
+            return;
         }
+        doPrepare();
     }
 
     public void prepareAsync() {
-        switch (mCurrentState) {
-            case STATE_INITIALIZED:
-            case STATE_STOPPED:
-                mCurrentState = STATE_PREPARING;
-                Log.d(TAG_TRACK, "State changed to STATE_PREPARING");
+        Log.d(TAG, "prepareAsync(), current state: " + stateToString(mCurrentState));
+        if (mCurrentState != STATE_INITIALIZED && mCurrentState != STATE_STOPPED) {
+            error();
+            return;
+        }
 
-                Thread t = new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        boolean streamInitialized = false;
-                        String lastPath = currentPath();
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                doPrepare();
+            }
+        });
+        t.setDaemon(true);
+        t.start();
+    }
 
-                        try {
-                            streamInitialized = initStream();
-                        } catch (IOException e) {
-                            if ((lastPath == null) || lastPath.equals(currentPath())) {
-                                Log.e(TAG_TRACK, "Failed setting data source!", e);
-                                error();
-                            }
-                            return;
-                        }
-                        if (streamInitialized) {
-                            if (mCurrentState != STATE_ERROR) {
-                                mCurrentState = STATE_PREPARED;
-                                Log.d(TAG_TRACK, "State changed to STATE_PREPARED");
-                            }
-                            if (owningMediaPlayer.onPreparedListener != null) {
-                                owningMediaPlayer.onPreparedListener.onPrepared(owningMediaPlayer);
-                            }
-                        }
-                    }
-                });
-                t.setDaemon(true);
-                t.start();
-                break;
-            default:
+    private void doPrepare() {
+        boolean streamInitialized;
+        String lastPath = currentPath();
+
+        setCurrentState(STATE_PREPARING);
+        try {
+            streamInitialized = initStream();
+        } catch (IOException e) {
+            String currentPath = currentPath();
+            if (currentPath == null || currentPath.equals(lastPath)) {
+                Log.e(TAG_TRACK, "Failed setting data source!", e);
                 error();
+            }
+            return;
+        }
+        if (streamInitialized) {
+            if (mCurrentState != STATE_ERROR) {
+                setCurrentState(STATE_PREPARED);
+            }
+            if (owningMediaPlayer.onPreparedListener != null) {
+                owningMediaPlayer.onPreparedListener.onPrepared(owningMediaPlayer);
+            }
         }
     }
 
     public void stop() {
-        switch (mCurrentState) {
-            case STATE_PREPARED:
-            case STATE_STARTED:
-            case STATE_STOPPED:
-            case STATE_PAUSED:
-            case STATE_PLAYBACK_COMPLETED:
-                mCurrentState = STATE_STOPPED;
-                Log.d(TAG_TRACK, "State changed to STATE_STOPPED");
-                mContinue = false;
-                mTrack.pause();
-                mTrack.flush();
-                break;
-            default:
-                error();
+        boolean isStoppableState = isValidStateForStopping(mCurrentState);
+        if (!isStoppableState) {
+            error();
+            return;
         }
+        setCurrentState(STATE_STOPPED);
+        mContinue = false;
+        mTrack.pause();
+        mTrack.flush();
     }
 
     public void start() {
-        switch (mCurrentState) {
-            case STATE_PLAYBACK_COMPLETED:
+        if (mCurrentState == STATE_STARTED) {
+            return;
+        }
+        if (mCurrentState == STATE_PLAYBACK_COMPLETED || mCurrentState == STATE_PREPARED) {
+            if(mCurrentState == STATE_PLAYBACK_COMPLETED) {
                 try {
                     initStream();
                 } catch (IOException e) {
@@ -297,46 +262,38 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
                     error();
                     return;
                 }
-                // deliberate fallthrough
-            case STATE_PREPARED:
-                mCurrentState = STATE_STARTED;
-                Log.d(TAG, "State changed to STATE_STARTED");
-                mContinue = true;
-                mTrack.play();
-                decode();
-            case STATE_STARTED:
-                break;
-            case STATE_PAUSED:
-                mCurrentState = STATE_STARTED;
-                Log.d(TAG, "State changed to STATE_STARTED");
-                synchronized (mDecoderLock) {
-                    mDecoderLock.notify();
-                }
-                mTrack.play();
-                break;
-            default:
-                mCurrentState = STATE_ERROR;
-                Log.d(TAG, "State changed to STATE_ERROR in start");
-                if (mTrack != null) {
-                    error();
-                } else {
-                    Log.d("start", "Attempting to start while in idle after construction. " +
-                            "Not allowed by no callbacks called");
-                }
+            }
+            setCurrentState(STATE_STARTED);
+            mContinue = true;
+            mTrack.play();
+            decode();
+        } else if (mCurrentState == STATE_PAUSED) {
+            setCurrentState(STATE_STARTED);
+            synchronized (mDecoderLock) {
+                mDecoderLock.notify();
+            }
+            mTrack.play();
+        } else {
+            setCurrentState(STATE_ERROR);
+            if (mTrack != null) {
+                error();
+            } else {
+                Log.d("start", "Attempting to start while in idle after construction. " +
+                        "Not allowed by no callbacks called");
+            }
         }
     }
 
     public void release() {
         reset();
-        mCurrentState = STATE_END;
+        setCurrentState(STATE_END);
     }
 
     public void reset() {
         mLock.lock();
         mContinue = false;
         try {
-            if (mDecoderThread != null
-                    && mCurrentState != STATE_PLAYBACK_COMPLETED) {
+            if (mDecoderThread != null && mCurrentState != STATE_PLAYBACK_COMPLETED) {
                 while (mIsDecoding) {
                     synchronized (mDecoderLock) {
                         mDecoderLock.notify();
@@ -345,8 +302,7 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
                 }
             }
         } catch (InterruptedException e) {
-            Log.e(TAG_TRACK, "Interrupted in reset while waiting for decoder thread to stop.",
-                    e);
+            Log.e(TAG_TRACK, "Interrupted in reset while waiting for decoder thread to stop.", e);
         }
         if (mCodec != null) {
             mCodec.release();
@@ -362,90 +318,81 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
         }
         mPath = null;
         mUri = null;
-        mCurrentState = STATE_IDLE;
         mBufferSize = 0;
-        Log.d(TAG_TRACK, "State changed to STATE_IDLE");
+        setCurrentState(STATE_IDLE);
         mLock.unlock();
     }
 
     public void seekTo(final int msec) {
         boolean playing = false;
-        switch (mCurrentState) {
-            case STATE_STARTED:
-                playing = true;
-                pause();
-            case STATE_PREPARED:
-            case STATE_PAUSED:
-            case STATE_PLAYBACK_COMPLETED:
-                if (mTrack == null) {
+
+        boolean seekableState = isValidStateForSeeking(mCurrentState);
+        if (!seekableState) {
+            error();
+            Log.d(TAG_TRACK, "Current state " + stateToString(mCurrentState) + " is not seekable");
+            return;
+        }
+
+        if (mCurrentState == STATE_STARTED) {
+            playing = true;
+            pause();
+        }
+        if (mTrack == null) {
+            return;
+        }
+        mTrack.flush();
+
+        final boolean wasPlaying = playing;
+
+        Runnable seekRunnable = new Runnable() {
+
+            @Override
+            public void run() {
+                String lastPath = currentPath();
+
+                mSeekingCount.incrementAndGet();
+                try {
+                    mExtractor.seekTo(((long) msec * 1000), MediaExtractor.SEEK_TO_PREVIOUS_SYNC);
+                } catch (Exception e) {
+                    error();
                     return;
+                } finally {
+                    mSeekingCount.decrementAndGet();
                 }
-                mTrack.flush();
 
-                final boolean wasPlaying = playing;
+                // make sure that the current episode didn't change while seeking
+                if (mExtractor != null && lastPath != null && lastPath.equals(currentPath()) && mCurrentState != STATE_ERROR) {
 
-                Runnable seekRunnable = new Runnable() {
+                    Log.d(TAG, "seek completed, position: " + getCurrentPosition());
 
-                    @Override
-                    public void run() {
-                        String lastPath = currentPath();
-
-                        mSeekingCount.incrementAndGet();
-
-                        try {
-                            mExtractor.seekTo(((long) msec * 1000), MediaExtractor.SEEK_TO_PREVIOUS_SYNC);
-                        } catch (Exception e) {
-                            error();
-                            return;
-                        } finally {
-                            mSeekingCount.decrementAndGet();
-                        }
-
-                        // make sure that the current episode didn't change while seeking
-                        if ((mExtractor != null) && lastPath.equals(currentPath()) && (mCurrentState != STATE_ERROR)) {
-
-                            Log.d(TAG, "seek completed, position: " + getCurrentPosition());
-
-                            if (owningMediaPlayer.onSeekCompleteListener != null) {
-                                owningMediaPlayer.onSeekCompleteListener.onSeekComplete(owningMediaPlayer);
-                            }
-                            if (wasPlaying) {
-                                start();
-                            }
-                        }
+                    if (owningMediaPlayer.onSeekCompleteListener != null) {
+                        owningMediaPlayer.onSeekCompleteListener.onSeekComplete(owningMediaPlayer);
                     }
-                };
-
-                // the seeking is started in another thread to prevent UI locking
-                if (mUri != null) {
-                    Thread t = new Thread(seekRunnable);
-
-                    t.setDaemon(true);
-                    t.start();
-                } else {
-                    seekRunnable.run();
+                    if (wasPlaying) {
+                        start();
+                    }
                 }
+            }
+        };
 
-                break;
-            default:
-                error();
+        // when streaming, the seeking is started in another thread to prevent UI locking
+        if (mUri != null) {
+            Thread t = new Thread(seekRunnable);
+            t.setDaemon(true);
+            t.start();
+        } else {
+            seekRunnable.run();
         }
     }
 
     @Override
-    public void setAudioStreamType(int streamtype) {
-        return;
-    }
+    public void setAudioStreamType(int streamtype) {}
 
     @Override
-    public void setEnableSpeedAdjustment(boolean enableSpeedAdjustment) {
-        return;
-    }
+    public void setEnableSpeedAdjustment(boolean enableSpeedAdjustment) {}
 
     @Override
-    public void setLooping(boolean loop) {
-        return;
-    }
+    public void setLooping(boolean loop) {}
 
     @Override
     public void setPitchStepsAdjustment(float pitchSteps) {
@@ -464,28 +411,22 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
 
     @Override
     public void setDataSource(String path) {
-        switch (mCurrentState) {
-            case STATE_IDLE:
-                mPath = path;
-                mCurrentState = STATE_INITIALIZED;
-                Log.d(TAG_TRACK, "Moving state to STATE_INITIALIZED");
-                break;
-            default:
-                error();
+        if (mCurrentState != STATE_IDLE) {
+            error();
+            return;
         }
+        mPath = path;
+        setCurrentState(STATE_INITIALIZED);
     }
 
     @Override
     public void setDataSource(Context context, Uri uri) {
-        switch (mCurrentState) {
-            case STATE_IDLE:
-                mUri = uri;
-                mCurrentState = STATE_INITIALIZED;
-                Log.d(TAG_TRACK, "Moving state to STATE_INITIALIZED");
-                break;
-            default:
-                error();
+        if (mCurrentState != STATE_IDLE) {
+            error();
+            return;
         }
+        mUri = uri;
+        setCurrentState(STATE_INITIALIZED);
     }
 
     public void setDownMix(boolean downmix) {
@@ -496,9 +437,10 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
     @Override
     public void setVolume(float leftVolume, float rightVolume) {
         // Pass call directly to AudioTrack if available.
-        if (null != mTrack) {
-            mTrack.setStereoVolume(leftVolume, rightVolume);
+        if (mTrack == null) {
+            return;
         }
+        mTrack.setStereoVolume(leftVolume, rightVolume);
     }
 
     @Override
@@ -530,40 +472,12 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
         if (mCurrentState == STATE_ERROR) {
             return;
         }
-        Log.e(TAG_TRACK, "Moved to error state!");
-        mCurrentState = STATE_ERROR;
+        setCurrentState(STATE_ERROR);
         if (owningMediaPlayer.onErrorListener != null) {
             boolean handled = owningMediaPlayer.onErrorListener.onError(owningMediaPlayer, 0, extra);
             if (!handled && owningMediaPlayer.onCompletionListener != null) {
                 owningMediaPlayer.onCompletionListener.onCompletion(owningMediaPlayer);
             }
-        }
-    }
-
-    private int findFormatFromChannels(int numChannels) {
-        switch (numChannels) {
-            case 1:
-                return AudioFormat.CHANNEL_OUT_MONO;
-            case 2:
-                return AudioFormat.CHANNEL_OUT_STEREO;
-            case 3:
-                return AudioFormat.CHANNEL_OUT_STEREO | AudioFormat.CHANNEL_OUT_FRONT_CENTER;
-            case 4:
-                return AudioFormat.CHANNEL_OUT_QUAD;
-            case 5:
-                return AudioFormat.CHANNEL_OUT_QUAD | AudioFormat.CHANNEL_OUT_FRONT_CENTER;
-            case 6:
-                return AudioFormat.CHANNEL_OUT_5POINT1;
-            case 7:
-                return AudioFormat.CHANNEL_OUT_5POINT1 | AudioFormat.CHANNEL_OUT_BACK_CENTER;
-            case 8:
-                if (Build.VERSION.SDK_INT >= 23) {
-                    return AudioFormat.CHANNEL_OUT_7POINT1_SURROUND;
-                } else {
-                    return -1;
-                }
-            default:
-                return -1; // Error
         }
     }
 
@@ -584,7 +498,6 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
         String lastPath = currentPath();
 
         mInitiatingCount.incrementAndGet();
-
         try {
             mExtractor = new MediaExtractor();
 
@@ -593,15 +506,14 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
             } else if (mUri != null) {
                 mExtractor.setDataSource(mContext, mUri, null);
             } else {
-                throw new IOException();
+                throw new IOException("Neither path nor uri set");
             }
-        } catch (IOException e) {
-            throw e;
         } finally {
             mInitiatingCount.decrementAndGet();
         }
 
-        if (!lastPath.equals(currentPath()) || (mCurrentState == STATE_ERROR)) {
+        String currentPath = currentPath();
+        if (currentPath == null || !currentPath.equals(lastPath) || mCurrentState == STATE_ERROR) {
             return false;
         }
 
@@ -668,6 +580,33 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
         mLock.unlock();
     }
 
+    private int findFormatFromChannels(int numChannels) {
+        switch (numChannels) {
+            case 1:
+                return AudioFormat.CHANNEL_OUT_MONO;
+            case 2:
+                return AudioFormat.CHANNEL_OUT_STEREO;
+            case 3:
+                return AudioFormat.CHANNEL_OUT_STEREO | AudioFormat.CHANNEL_OUT_FRONT_CENTER;
+            case 4:
+                return AudioFormat.CHANNEL_OUT_QUAD;
+            case 5:
+                return AudioFormat.CHANNEL_OUT_QUAD | AudioFormat.CHANNEL_OUT_FRONT_CENTER;
+            case 6:
+                return AudioFormat.CHANNEL_OUT_5POINT1;
+            case 7:
+                return AudioFormat.CHANNEL_OUT_5POINT1 | AudioFormat.CHANNEL_OUT_BACK_CENTER;
+            case 8:
+                if (Build.VERSION.SDK_INT >= 23) {
+                    return AudioFormat.CHANNEL_OUT_7POINT1_SURROUND;
+                } else {
+                    return -1;
+                }
+            default:
+                return -1; // Error
+        }
+    }
+
     private AudioTrack createAudioTrack(int sampleRate,
                                         int channelConfig,
                                         int minBufferSize) {
@@ -694,7 +633,6 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
         }
         throw new IllegalStateException("Could not create buffer for AudioTrack");
     }
-
 
     @SuppressWarnings("deprecation")
     public void decode() {
@@ -884,4 +822,46 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
         mDecoderThread.setDaemon(true);
         mDecoderThread.start();
     }
+
+    private void setCurrentState(int state) {
+        mCurrentState = state;
+        Log.d(TAG_TRACK, "State changed to " + stateToString(state));
+    }
+
+    private String stateToString(int state) {
+        switch (state) {
+            case STATE_IDLE:
+                return "STATE_IDLE";
+            case STATE_INITIALIZED:
+                return "STATE_INITIALIZED";
+            case STATE_PREPARING:
+                return "STATE_PREPARING";
+            case STATE_PREPARED:
+                return "STATE_PREPARED";
+            case STATE_STARTED:
+                return "STATE_STARTED";
+            case STATE_PAUSED:
+                return "STATE_PAUSED";
+            case STATE_STOPPED:
+                return "STATE_STOPPED";
+            case STATE_PLAYBACK_COMPLETED:
+                return "STATE_PLAYBACK_COMPLETED";
+            case STATE_END:
+                return "STATE_END";
+            case STATE_ERROR:
+                return "STATE_ERROR";
+            default:
+                return "UNKNOWN_STATE";
+        }
+    }
+
+    private boolean isValidStateForSeeking(int state) {
+        return state == STATE_STARTED || state == STATE_PREPARED || state == STATE_PAUSED || state == STATE_PLAYBACK_COMPLETED;
+    }
+
+
+    private boolean isValidStateForStopping(int state) {
+        return state == STATE_PREPARED || state == STATE_STARTED || state == STATE_STOPPED || state == STATE_PAUSED || state == STATE_PLAYBACK_COMPLETED;
+    }
+
 }
