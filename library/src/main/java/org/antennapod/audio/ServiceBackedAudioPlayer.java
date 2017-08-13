@@ -47,12 +47,12 @@ import java.io.IOException;
 
 /**
  * Class for connecting to remote speed-altering, media playing Service
- * Note that there is unusually high coupling between MediaPlayer and this 
+ * Note that there is unusually high coupling between MediaPlayer and this
  * class.  This is an unfortunate compromise, since the alternative was to
  * track state in two different places in this code (plus the internal state
  * of the remote media player).
- * @author aocate
  *
+ * @author aocate
  */
 public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
 
@@ -155,8 +155,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
                 Log.d(SBMP_TAG, "Service already bound");
                 return true;
             }
-        }
-        else {
+        } else {
             Log.d(SBMP_TAG, INTENT_NAME + " is not available");
             return false;
         }
@@ -169,6 +168,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
 
     /**
      * Returns true if pitch can be changed at this moment
+     *
      * @return True if pitch can be changed
      */
     @Override
@@ -194,6 +194,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
 
     /**
      * Returns true if speed can be changed at this moment
+     *
      * @return True if speed can be changed
      */
     @Override
@@ -243,8 +244,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
                     owningMediaPlayer.onCompletionListener.onCompletion(owningMediaPlayer);
                 }
             }
-        }
-        finally {
+        } finally {
             this.isErroring = false;
             owningMediaPlayer.lock.unlock();
         }
@@ -255,8 +255,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
         try {
             Log.d(SBMP_TAG, "finalize() 224");
             this.release();
-        }
-        finally {
+        } finally {
             owningMediaPlayer.lock.unlock();
         }
     }
@@ -265,6 +264,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
      * Returns the number of steps (in a musical scale) by which playback is
      * currently shifted.  When greater than zero, pitch is shifted up.
      * When less than zero, pitch is shifted down.
+     *
      * @return The number of steps pitch is currently shifted by
      */
     @Override
@@ -290,6 +290,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
 
     /**
      * Functions identically to android.media.MediaPlayer.getCurrentPosition()
+     *
      * @return Current position (in milliseconds)
      */
     @Override
@@ -312,6 +313,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
 
     /**
      * Returns the current speed multiplier.  Defaults to 1.0 (normal speed)
+     *
      * @return The current speed multiplier
      */
     @Override
@@ -337,6 +339,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
 
     /**
      * Functions identically to android.media.MediaPlayer.getDuration()
+     *
      * @return Length of the track (in milliseconds)
      */
     @Override
@@ -358,6 +361,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
 
     /**
      * Get the maximum value that can be passed to setPlaybackSpeed
+     *
      * @return The maximum speed multiplier
      */
     @Override
@@ -383,6 +387,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
 
     /**
      * Get the minimum value that can be passed to setPlaybackSpeed
+     *
      * @return The minimum speed multiplier
      */
     @Override
@@ -444,6 +449,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
 
     /**
      * Functions identically to android.media.MediaPlayer.isLooping()
+     *
      * @return True if the track is looping
      */
     @Override
@@ -465,6 +471,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
 
     /**
      * Functions identically to android.media.MediaPlayer.isPlaying()
+     *
      * @return True if the track is playing
      */
     @Override
@@ -689,8 +696,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
         }
         if (pmInterface == null) {
             ServiceBackedAudioPlayer.this.error(MediaPlayer.MEDIA_ERROR_UNKNOWN, 0);
-        }
-        else {
+        } else {
             try {
                 pmInterface.setDataSourceString(
                         ServiceBackedAudioPlayer.this.sessionId,
@@ -705,6 +711,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
     /**
      * Sets whether to use speed adjustment or not.  Speed adjustment on is
      * more computation-intensive than with it off.
+     *
      * @param enableSpeedAdjustment Whether speed adjustment should be supported.
      */
     @Override
@@ -729,8 +736,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
                     ServiceBackedAudioPlayer.this.error(MediaPlayer.MEDIA_ERROR_UNKNOWN, 0);
                 }
             }
-        }
-        finally {
+        } finally {
             owningMediaPlayer.lock.unlock();
         }
     }
@@ -788,6 +794,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
      * Sets the percentage by which pitch is currently shifted.  When
      * greater than zero, pitch is shifted up.  When less than zero, pitch
      * is shifted down
+     *
      * @param f The percentage to shift pitch
      */
     @Override
@@ -814,6 +821,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
     /**
      * Set playback speed.  1.0 is normal speed, 2.0 is double speed, and so
      * on.  Speed should never be set to 0 or below.
+     *
      * @param f The speed multiplier to use for further playback
      */
     @Override
@@ -873,7 +881,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
         Log.d(SBMP_TAG, "setWakeMode(context, " + mode + ")");
         boolean wasHeld = false;
         if (mWakeLock != null) {
-            if(mWakeLock.isHeld()) {
+            if (mWakeLock.isHeld()) {
                 wasHeld = true;
                 Log.d(SBMP_TAG, "Releasing wakelock");
                 mWakeLock.release();
@@ -885,7 +893,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
             mWakeLock = pm.newWakeLock(mode, this.getClass().getName());
             mWakeLock.setReferenceCounted(false);
 
-            if(wasHeld) {
+            if (wasHeld) {
                 Log.d(SBMP_TAG, "Acquiring wakelock");
                 mWakeLock.acquire();
             }
@@ -895,7 +903,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
     /**
      * Changes the state of the WakeLock if it has been acquired.
      * If no WakeLock has been acquired with setWakeMode, this method does nothing.
-     * */
+     */
     private void stayAwake(boolean awake) {
         if (BuildConfig.DEBUG) Log.d(SBMP_TAG, "stayAwake(" + awake + ")");
         if (mWakeLock != null) {
@@ -910,6 +918,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
     }
 
     private IOnBufferingUpdateListenerCallback_0_8.Stub mOnBufferingUpdateCallback = null;
+
     private void setOnBufferingUpdateCallback(IPlayMedia_0_8 iface) {
         try {
             if (this.mOnBufferingUpdateCallback == null) {
@@ -922,8 +931,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
                                     && (owningMediaPlayer.mpi == ServiceBackedAudioPlayer.this)) {
                                 owningMediaPlayer.onBufferingUpdateListener.onBufferingUpdate(owningMediaPlayer, percent);
                             }
-                        }
-                        finally {
+                        } finally {
                             owningMediaPlayer.lock.unlock();
                         }
                     }
@@ -939,6 +947,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
     }
 
     private IOnCompletionListenerCallback_0_8.Stub mOnCompletionCallback = null;
+
     private void setOnCompletionCallback(IPlayMedia_0_8 iface) {
         try {
             if (this.mOnCompletionCallback == null) {
@@ -951,8 +960,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
                             if (owningMediaPlayer.onCompletionListener != null) {
                                 owningMediaPlayer.onCompletionListener.onCompletion(owningMediaPlayer);
                             }
-                        }
-                        finally {
+                        } finally {
                             owningMediaPlayer.lock.unlock();
                         }
                     }
@@ -968,6 +976,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
     }
 
     private IOnErrorListenerCallback_0_8.Stub mOnErrorCallback = null;
+
     private void setOnErrorCallback(IPlayMedia_0_8 iface) {
         try {
             if (this.mOnErrorCallback == null) {
@@ -980,8 +989,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
                                 return owningMediaPlayer.onErrorListener.onError(owningMediaPlayer, what, extra);
                             }
                             return false;
-                        }
-                        finally {
+                        } finally {
                             owningMediaPlayer.lock.unlock();
                         }
                     }
@@ -997,6 +1005,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
     }
 
     private IOnInfoListenerCallback_0_8.Stub mOnInfoCallback = null;
+
     private void setOnInfoCallback(IPlayMedia_0_8 iface) {
         try {
             if (this.mOnInfoCallback == null) {
@@ -1008,8 +1017,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
                                     && (owningMediaPlayer.mpi == ServiceBackedAudioPlayer.this)) {
                                 return owningMediaPlayer.onInfoListener.onInfo(owningMediaPlayer, what, extra);
                             }
-                        }
-                        finally {
+                        } finally {
                             owningMediaPlayer.lock.unlock();
                         }
                         return false;
@@ -1026,6 +1034,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
     }
 
     private IOnPitchAdjustmentAvailableChangedListenerCallback_0_8.Stub mOnPitchAdjustmentAvailableChangedCallback = null;
+
     private void setOnPitchAdjustmentAvailableChangedListener(IPlayMedia_0_8 iface) {
         try {
             if (this.mOnPitchAdjustmentAvailableChangedCallback == null) {
@@ -1038,8 +1047,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
                             if (owningMediaPlayer.onPitchAdjustmentAvailableChangedListener != null) {
                                 owningMediaPlayer.onPitchAdjustmentAvailableChangedListener.onPitchAdjustmentAvailableChanged(owningMediaPlayer, pitchAdjustmentAvailable);
                             }
-                        }
-                        finally {
+                        } finally {
                             owningMediaPlayer.lock.unlock();
                         }
                     }
@@ -1055,6 +1063,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
     }
 
     private IOnPreparedListenerCallback_0_8.Stub mOnPreparedCallback = null;
+
     private void setOnPreparedCallback(IPlayMedia_0_8 iface) {
         try {
             if (this.mOnPreparedCallback == null) {
@@ -1069,19 +1078,16 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
                             try {
                                 if (ServiceBackedAudioPlayer.this.muteOnPreparedCount > 0) {
                                     ServiceBackedAudioPlayer.this.muteOnPreparedCount--;
-                                }
-                                else {
+                                } else {
                                     ServiceBackedAudioPlayer.this.muteOnPreparedCount = 0;
                                     if (ServiceBackedAudioPlayer.this.owningMediaPlayer.onPreparedListener != null) {
                                         owningMediaPlayer.onPreparedListener.onPrepared(owningMediaPlayer);
                                     }
                                 }
-                            }
-                            finally {
+                            } finally {
                                 ServiceBackedAudioPlayer.this.lockMuteOnPreparedCount.unlock();
                             }
-                        }
-                        finally {
+                        } finally {
                             owningMediaPlayer.lock.unlock();
                         }
                     }
@@ -1097,6 +1103,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
     }
 
     private IOnSeekCompleteListenerCallback_0_8.Stub mOnSeekCompleteCallback = null;
+
     private void setOnSeekCompleteCallback(IPlayMedia_0_8 iface) {
         try {
             if (this.mOnSeekCompleteCallback == null) {
@@ -1108,8 +1115,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
                             if (ServiceBackedAudioPlayer.this.muteOnSeekCount > 0) {
                                 Log.d(SBMP_TAG, "The next " + ServiceBackedAudioPlayer.this.muteOnSeekCount + " seek events are muted (counting this one)");
                                 ServiceBackedAudioPlayer.this.muteOnSeekCount--;
-                            }
-                            else {
+                            } else {
                                 ServiceBackedAudioPlayer.this.muteOnSeekCount = 0;
                                 Log.d(SBMP_TAG, "Attempting to invoke next seek event");
                                 if (ServiceBackedAudioPlayer.this.owningMediaPlayer.onSeekCompleteListener != null) {
@@ -1117,8 +1123,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
                                     owningMediaPlayer.onSeekCompleteListener.onSeekComplete(owningMediaPlayer);
                                 }
                             }
-                        }
-                        finally {
+                        } finally {
                             owningMediaPlayer.lock.unlock();
                         }
                     }
@@ -1134,6 +1139,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
     }
 
     private IOnSpeedAdjustmentAvailableChangedListenerCallback_0_8.Stub mOnSpeedAdjustmentAvailableChangedCallback = null;
+
     private void setOnSpeedAdjustmentAvailableChangedCallback(IPlayMedia_0_8 iface) {
         try {
             Log.d(SBMP_TAG, "Setting the service of on speed adjustment available changed");
@@ -1147,8 +1153,7 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
                             if (owningMediaPlayer.onSpeedAdjustmentAvailableChangedListener != null) {
                                 owningMediaPlayer.onSpeedAdjustmentAvailableChangedListener.onSpeedAdjustmentAvailableChanged(owningMediaPlayer, speedAdjustmentAvailable);
                             }
-                        }
-                        finally {
+                        } finally {
                             owningMediaPlayer.lock.unlock();
                         }
                     }

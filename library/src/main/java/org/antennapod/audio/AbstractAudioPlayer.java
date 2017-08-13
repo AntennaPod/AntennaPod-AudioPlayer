@@ -98,25 +98,25 @@ public abstract class AbstractAudioPlayer {
     public abstract void stop();
 
     protected final ReentrantLock lockMuteOnPreparedCount = new ReentrantLock();
+
     public void muteNextOnPrepare() {
         lockMuteOnPreparedCount.lock();
         Log.d(MPI_TAG, "muteNextOnPrepare()");
         try {
             this.muteOnPreparedCount++;
-        }
-        finally {
+        } finally {
             lockMuteOnPreparedCount.unlock();
         }
     }
 
     protected final ReentrantLock lockMuteOnSeekCount = new ReentrantLock();
+
     public void muteNextSeek() {
         lockMuteOnSeekCount.lock();
         Log.d(MPI_TAG, "muteNextOnSeek()");
         try {
             this.muteOnSeekCount++;
-        }
-        finally {
+        } finally {
             lockMuteOnSeekCount.unlock();
         }
     }
