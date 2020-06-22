@@ -22,6 +22,9 @@ import android.os.Build;
 import android.util.Log;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.Map;
 
 public class AndroidAudioPlayer extends AbstractAudioPlayer {
 
@@ -335,7 +338,7 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
         owningMediaPlayer.lock.lock();
         try {
             Log.d(AMP_TAG, "setDataSource(context, " + uri.toString() + ")");
-            mp.setDataSource(context, uri);
+            mp.setDataSource(context, uri, getHeaders());
         } finally {
             owningMediaPlayer.lock.unlock();
         }
@@ -347,6 +350,21 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
         owningMediaPlayer.lock.lock();
         try {
             Log.d(AMP_TAG, "setDataSource(" + path + ")");
+
+            // setDataSource(String, Map) is annotated @hide.
+            // Hack around with reflection to call the method.
+            try {
+                Method method = mp.getClass().getMethod("setDataSource", String.class, Map.class);
+                method.invoke(mp, path, getHeaders());
+                return;
+            } catch (NoSuchMethodException e) {
+                e.printStackTrace();
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            } catch (InvocationTargetException e) {
+                e.printStackTrace();
+            }
+            // Fall-back without headers
             mp.setDataSource(path);
         } finally {
             owningMediaPlayer.lock.unlock();
