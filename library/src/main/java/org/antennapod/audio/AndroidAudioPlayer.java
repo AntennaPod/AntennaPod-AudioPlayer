@@ -152,8 +152,8 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
         }
     };
 
-    public AndroidAudioPlayer(org.antennapod.audio.MediaPlayer owningMediaPlayer, Context context) {
-        super(owningMediaPlayer, context);
+    public AndroidAudioPlayer(org.antennapod.audio.MediaPlayer owningMediaPlayer, Context context, String userAgent) {
+        super(owningMediaPlayer, context, userAgent);
 
         mp = new MediaPlayer();
         if (mp == null) {

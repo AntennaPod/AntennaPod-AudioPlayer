@@ -82,8 +82,8 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
     private boolean mDownMix;
 
 
-    SonicAudioPlayer(MediaPlayer owningMediaPlayer, Context context) {
-        super(owningMediaPlayer, context);
+    SonicAudioPlayer(MediaPlayer owningMediaPlayer, Context context, String userAgent) {
+        super(owningMediaPlayer, context, userAgent);
         mCurrentSpeed = 1.0f;
         mCurrentPitch = 1.0f;
         mContinue = false;

@@ -30,11 +30,12 @@ public abstract class AbstractAudioPlayer {
     protected final Context mContext;
     protected int muteOnPreparedCount = 0;
     protected int muteOnSeekCount = 0;
-    private String userAgent = "AntennaPodAudioPlayer";
+    private final String userAgent;
 
-    public AbstractAudioPlayer(MediaPlayer owningMediaPlayer, Context context) {
+    public AbstractAudioPlayer(MediaPlayer owningMediaPlayer, Context context, String userAgent) {
         this.owningMediaPlayer = owningMediaPlayer;
         this.mContext = context;
+        this.userAgent = userAgent;
     }
 
     public abstract int getAudioSessionId();
@@ -121,10 +122,6 @@ public abstract class AbstractAudioPlayer {
         } finally {
             lockMuteOnSeekCount.unlock();
         }
-    }
-
-    public void setUserAgent(String userAgent) {
-        this.userAgent = userAgent;
     }
 
     protected Map<String, String> getHeaders() {

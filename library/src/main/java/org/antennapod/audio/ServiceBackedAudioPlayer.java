@@ -77,8 +77,9 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
     // Sometimes the service won't exist or won't be connected,
     // so start with an android.media.MediaPlayer, and when
     // the service is connected, use that from then on
-    public ServiceBackedAudioPlayer(MediaPlayer owningMediaPlayer, final Context context, final ServiceConnection serviceConnection) {
-        super(owningMediaPlayer, context);
+    public ServiceBackedAudioPlayer(MediaPlayer owningMediaPlayer, final Context context,
+                                    final ServiceConnection serviceConnection, String userAgent) {
+        super(owningMediaPlayer, context, userAgent);
         Log.d(SBMP_TAG, "Instantiating ServiceBackedMediaPlayer 87");
         this.playMediaServiceIntent =
                 MediaPlayer.getPrestoServiceIntent(context, INTENT_NAME);

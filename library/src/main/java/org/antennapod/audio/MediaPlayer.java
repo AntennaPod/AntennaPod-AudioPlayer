@@ -197,6 +197,7 @@ public class MediaPlayer {
     AbstractAudioPlayer mpi = null;
     private boolean pitchAdjustmentAvailable = false;
     private boolean speedAdjustmentAvailable = false;
+    private final String userAgent;
 
     private Handler mServiceDisconnectedHandler = null;
 
@@ -286,21 +287,18 @@ public class MediaPlayer {
     };
     private OnSpeedAdjustmentAvailableChangedListener speedAdjustmentAvailableChangedListener = null;
 
-    public MediaPlayer(final Context context) {
-        this(context, true);
-    }
-
-    public MediaPlayer(final Context context, boolean useService) {
+    public MediaPlayer(final Context context, boolean useService, String userAgent) {
         this.mContext = context;
         this.useService = useService;
+        this.userAgent = userAgent;
 
         // So here's the major problem
         // Sometimes the service won't exist or won't be connected,
         // so start with an android.media.MediaPlayer, and when
         // the service is connected, use that from then on
-        this.mpi = this.amp = new AndroidAudioPlayer(this, context);
+        this.mpi = this.amp = new AndroidAudioPlayer(this, context, userAgent);
         if (Build.VERSION.SDK_INT >= 16) {
-            this.smp = new SonicAudioPlayer(this, context);
+            this.smp = new SonicAudioPlayer(this, context, userAgent);
             this.smp.setDownMix(downmix());
         }
 
@@ -435,7 +433,7 @@ public class MediaPlayer {
                                                             // This should never be in this state
                                                             MediaPlayer.this.amp = new AndroidAudioPlayer(
                                                                     MediaPlayer.this,
-                                                                    MediaPlayer.this.mContext);
+                                                                    MediaPlayer.this.mContext, userAgent);
                                                         }
                                                         // Use sbmp instead of null in case by some miracle it's
                                                         // been restored in the meantime
@@ -461,8 +459,7 @@ public class MediaPlayer {
                                         MediaPlayer.this.lock.unlock();
                                     }
                                 }
-                            }
-                    );
+                            }, userAgent);
                 }
                 Log.d(MP_TAG, "Switching to ServiceBackedMediaPlayer");
                 switchMediaPlayerImpl(mpi, sbmp);
@@ -473,7 +470,7 @@ public class MediaPlayer {
                 }
                 if (this.amp == null) {
                     Log.d(MP_TAG, "Instantiating new AndroidMediaPlayer (this should be impossible)");
-                    this.amp = new AndroidAudioPlayer(this, context);
+                    this.amp = new AndroidAudioPlayer(this, context, userAgent);
                 }
                 switchMediaPlayerImpl(mpi, this.amp);
             }
