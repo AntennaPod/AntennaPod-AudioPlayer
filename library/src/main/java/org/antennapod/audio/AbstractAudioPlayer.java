@@ -19,6 +19,8 @@ import android.net.Uri;
 import android.util.Log;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
 public abstract class AbstractAudioPlayer {
@@ -28,10 +30,10 @@ public abstract class AbstractAudioPlayer {
     protected final Context mContext;
     protected int muteOnPreparedCount = 0;
     protected int muteOnSeekCount = 0;
+    private String userAgent = "AntennaPodAudioPlayer";
 
     public AbstractAudioPlayer(MediaPlayer owningMediaPlayer, Context context) {
         this.owningMediaPlayer = owningMediaPlayer;
-
         this.mContext = context;
     }
 
@@ -119,5 +121,15 @@ public abstract class AbstractAudioPlayer {
         } finally {
             lockMuteOnSeekCount.unlock();
         }
+    }
+
+    public void setUserAgent(String userAgent) {
+        this.userAgent = userAgent;
+    }
+
+    protected Map<String, String> getHeaders() {
+        Map<String, String> headerMap = new HashMap<>();
+        headerMap.put("User-Agent", userAgent);
+        return headerMap;
     }
 }

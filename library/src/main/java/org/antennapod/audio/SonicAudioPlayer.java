@@ -499,9 +499,9 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
             mExtractor = new MediaExtractor();
 
             if (mPath != null) {
-                mExtractor.setDataSource(mPath);
+                mExtractor.setDataSource(mPath, getHeaders());
             } else if (mUri != null) {
-                mExtractor.setDataSource(mContext, mUri, null);
+                mExtractor.setDataSource(mContext, mUri, getHeaders());
             } else {
                 throw new IOException("Neither path nor uri set");
             }
