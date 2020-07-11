@@ -30,7 +30,7 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
 
     private final static String AMP_TAG = "AndroidMediaPlayer";
 
-    MediaPlayer mp = null;
+    MediaPlayer mp;
 
     private final MediaPlayer.OnBufferingUpdateListener onBufferingUpdateListener = new MediaPlayer.OnBufferingUpdateListener() {
         public void onBufferingUpdate(MediaPlayer mp, int percent) {
@@ -424,7 +424,6 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
 
     @Override
     public void setDownmix(boolean enable) {
-        return;
     }
 
     @Override

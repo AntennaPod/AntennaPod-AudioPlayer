@@ -174,7 +174,7 @@ public class MediaPlayer {
 
     private static final double PITCH_STEP_CONSTANT = 1.0594630943593;
 
-    private AndroidAudioPlayer amp = null;
+    private AndroidAudioPlayer amp;
     private ServiceBackedAudioPlayer sbmp = null;
     private SonicAudioPlayer smp = null;
 
@@ -194,7 +194,7 @@ public class MediaPlayer {
     private float mRightVolume = 1f;
     private float mSpeedMultiplier = 1f;
     private int mWakeMode = 0;
-    AbstractAudioPlayer mpi = null;
+    AbstractAudioPlayer mpi;
     private boolean pitchAdjustmentAvailable = false;
     private boolean speedAdjustmentAvailable = false;
     private final String userAgent;
@@ -207,7 +207,7 @@ public class MediaPlayer {
     State state = State.INITIALIZED;
     private String stringDataSource = null;
     private Uri uriDataSource = null;
-    private boolean useService = false;
+    private boolean useService;
 
     // Naming Convention for Listeners
     // Most listeners can both be set by clients and called by MediaPlayImpls
@@ -374,11 +374,9 @@ public class MediaPlayer {
             if (useSonic() && this.smp != null) {
                 if (mpi != null && mpi instanceof SonicAudioPlayer) {
                     Log.d(MP_TAG, "Already using SonicMediaPlayer");
-                    return;
                 } else {
                     Log.d(MP_TAG, "Switching to SonicMediaPlayer");
                     switchMediaPlayerImpl(mpi, smp);
-                    return;
                 }
             } else if (this.useService && isPrestoLibraryInstalled()) {
                 if (mpi != null && mpi instanceof ServiceBackedAudioPlayer) {

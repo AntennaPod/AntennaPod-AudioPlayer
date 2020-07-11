@@ -430,7 +430,6 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
         mDownMix = downmix;
     }
 
-    @SuppressWarnings("deprecation")
     @Override
     public void setVolume(float leftVolume, float rightVolume) {
         // Pass call directly to AudioTrack if available.
@@ -630,7 +629,6 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
         throw new IllegalStateException("Could not create buffer for AudioTrack");
     }
 
-    @SuppressWarnings("deprecation")
     private void decode() {
         mDecoderThread = new Thread(new Runnable() {
 
@@ -697,7 +695,6 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
                     do {
                         res = mCodec.dequeueOutputBuffer(info, 200);
                         if (res >= 0) {
-                            int outputBufIndex = res;
                             final byte[] chunk = new byte[info.size];
                             outputBuffers[res].get(chunk);
                             outputBuffers[res].clear();
@@ -723,7 +720,7 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
                                 }
                             }
 
-                            mCodec.releaseOutputBuffer(outputBufIndex, false);
+                            mCodec.releaseOutputBuffer(res, false);
 
                             if ((info.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
                                 sawOutputEOS = true;

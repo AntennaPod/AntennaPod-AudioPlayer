@@ -60,16 +60,15 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
 
     private static final String SBMP_TAG = "ServiceBackedMediaPlaye";
 
-    private ServiceConnection mPlayMediaServiceConnection = null;
+    private ServiceConnection mPlayMediaServiceConnection;
     protected IPlayMedia_0_8 pmInterface = null;
-    private Intent playMediaServiceIntent = null;
+    private Intent playMediaServiceIntent;
     // In some cases, we're going to have to replace the
     // android.media.MediaPlayer on the fly, and we don't want to touch the
     // wrong media player.
 
     private int sessionId = 0;
     private boolean isErroring = false;
-    private int mAudioStreamType = AudioManager.STREAM_MUSIC;
 
     private WakeLock mWakeLock = null;
 
@@ -225,7 +224,6 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
 
     @Override
     public void setDownmix(boolean enable) {
-        return;
     }
 
     void error(int what, int extra) {
@@ -651,9 +649,10 @@ public class ServiceBackedAudioPlayer extends AbstractAudioPlayer {
             }
         }
         try {
+            int mAudioStreamType = AudioManager.STREAM_MUSIC;
             pmInterface.setAudioStreamType(
                     ServiceBackedAudioPlayer.this.sessionId,
-                    this.mAudioStreamType);
+                    mAudioStreamType);
         } catch (RemoteException e) {
             e.printStackTrace();
             ServiceBackedAudioPlayer.this.error(MediaPlayer.MEDIA_ERROR_UNKNOWN, 0);
