@@ -14,6 +14,8 @@
 
 package org.vinuxproject.sonic;
 
+import org.antennapod.audio.BuildConfig;
+
 public class Sonic {
 
     private static final int SONIC_MIN_PITCH = 65;
@@ -108,7 +110,7 @@ public class Sonic {
                            int newLength) {
         newLength *= numChannels;
         short[] newArray = new short[newLength];
-        int length = oldArray.length <= newLength ? oldArray.length : newLength;
+        int length = Math.min(oldArray.length, newLength);
 
         System.arraycopy(oldArray, 0, newArray, 0, length);
 
@@ -120,7 +122,7 @@ public class Sonic {
                       short[] source,
                       int sourcePos,
                       int numSamples) {
-        System.arraycopy(source, sourcePos * numChannels + 0, dest, destPos * numChannels + 0,
+        System.arraycopy(source, sourcePos * numChannels, dest, destPos * numChannels,
                 numSamples * numChannels);
     }
 
@@ -550,16 +552,11 @@ public class Sonic {
                 // Got a reasonable match this period
                 return false;
             }
-            if (minDiff * 2 <= prevMinDiff * 3) {
-                // Mismatch is not that much greater this period
-                return false;
-            }
+            // Mismatch is not that much greater this period
+            return minDiff * 2 > prevMinDiff * 3;
         } else {
-            if (minDiff <= prevMinDiff) {
-                return false;
-            }
+            return minDiff > prevMinDiff;
         }
-        return true;
     }
 
     // Find the pitch period.  This is a critical step, and we may have to try
@@ -801,8 +798,10 @@ public class Sonic {
             if (oldRatePosition == oldSampleRate) {
                 oldRatePosition = 0;
                 if (newRatePosition != newSampleRate) {
-                    System.out.printf("Assertion failed: newRatePosition != newSampleRate\n");
-                    assert false;
+                    System.out.print("Assertion failed: newRatePosition != newSampleRate\n");
+                    if (BuildConfig.DEBUG) {
+                        throw new AssertionError("Assertion failed");
+                    }
                 }
                 newRatePosition = 0;
             }
