@@ -25,7 +25,6 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
-import android.os.Message;
 import android.util.Log;
 
 import java.io.IOException;
@@ -223,39 +222,34 @@ public class MediaPlayer {
     // Special case. Pitch adjustment ceases to be available when we switch
     // to the android.media.MediaPlayer (though it is not guaranteed to be
     // available when using the ServiceBackedMediaPlayer)
-    OnPitchAdjustmentAvailableChangedListener onPitchAdjustmentAvailableChangedListener = new OnPitchAdjustmentAvailableChangedListener() {
-        public void onPitchAdjustmentAvailableChanged(MediaPlayer arg0,
-                                                      boolean pitchAdjustmentAvailable) {
-            lock.lock();
-            try {
-                Log.d(MP_TAG, "onPitchAdjustmentAvailableChangedListener.onPitchAdjustmentAvailableChanged being called");
-                if (MediaPlayer.this.pitchAdjustmentAvailable != pitchAdjustmentAvailable) {
-                    Log.d(MP_TAG, "Pitch adjustment state has changed from "
-                            + MediaPlayer.this.pitchAdjustmentAvailable
-                            + " to " + pitchAdjustmentAvailable);
-                    MediaPlayer.this.pitchAdjustmentAvailable = pitchAdjustmentAvailable;
-                    if (MediaPlayer.this.pitchAdjustmentAvailableChangedListener != null) {
-                        MediaPlayer.this.pitchAdjustmentAvailableChangedListener
-                                .onPitchAdjustmentAvailableChanged(arg0, pitchAdjustmentAvailable);
-                    }
+    OnPitchAdjustmentAvailableChangedListener onPitchAdjustmentAvailableChangedListener = (arg0, pitchAdjustmentAvailable) -> {
+        lock.lock();
+        try {
+            Log.d(MP_TAG, "onPitchAdjustmentAvailableChangedListener.onPitchAdjustmentAvailableChanged being called");
+            if (MediaPlayer.this.pitchAdjustmentAvailable != pitchAdjustmentAvailable) {
+                Log.d(MP_TAG, "Pitch adjustment state has changed from "
+                        + MediaPlayer.this.pitchAdjustmentAvailable
+                        + " to " + pitchAdjustmentAvailable);
+                MediaPlayer.this.pitchAdjustmentAvailable = pitchAdjustmentAvailable;
+                if (MediaPlayer.this.pitchAdjustmentAvailableChangedListener != null) {
+                    MediaPlayer.this.pitchAdjustmentAvailableChangedListener
+                            .onPitchAdjustmentAvailableChanged(arg0, pitchAdjustmentAvailable);
                 }
-            } finally {
-                lock.unlock();
             }
+        } finally {
+            lock.unlock();
         }
     };
     private OnPitchAdjustmentAvailableChangedListener pitchAdjustmentAvailableChangedListener = null;
 
-    final MediaPlayer.OnPreparedListener onPreparedListener = new MediaPlayer.OnPreparedListener() {
-        public void onPrepared(MediaPlayer arg0) {
-            Log.d(MP_TAG, "onPreparedListener 242 setting state to PREPARED");
-            MediaPlayer.this.state = State.PREPARED;
-            if (MediaPlayer.this.preparedListener != null) {
-                Log.d(MP_TAG, "Calling preparedListener");
-                MediaPlayer.this.preparedListener.onPrepared(arg0);
-            }
-            Log.d(MP_TAG, "Wrap up onPreparedListener");
+    final MediaPlayer.OnPreparedListener onPreparedListener = arg0 -> {
+        Log.d(MP_TAG, "onPreparedListener 242 setting state to PREPARED");
+        MediaPlayer.this.state = State.PREPARED;
+        if (MediaPlayer.this.preparedListener != null) {
+            Log.d(MP_TAG, "Calling preparedListener");
+            MediaPlayer.this.preparedListener.onPrepared(arg0);
         }
+        Log.d(MP_TAG, "Wrap up onPreparedListener");
     };
 
     private OnPreparedListener preparedListener = null;
@@ -264,25 +258,22 @@ public class MediaPlayer {
     // Special case. Speed adjustment ceases to be available when we switch
     // to the android.media.MediaPlayer (though it is not guaranteed to be
     // available when using the ServiceBackedMediaPlayer)
-    OnSpeedAdjustmentAvailableChangedListener onSpeedAdjustmentAvailableChangedListener = new OnSpeedAdjustmentAvailableChangedListener() {
-        public void onSpeedAdjustmentAvailableChanged(MediaPlayer arg0,
-                                                      boolean speedAdjustmentAvailable) {
-            lock.lock();
-            try {
-                Log.d(MP_TAG, "onSpeedAdjustmentAvailableChangedListener.onSpeedAdjustmentAvailableChanged being called");
-                if (MediaPlayer.this.speedAdjustmentAvailable != speedAdjustmentAvailable) {
-                    Log.d(MP_TAG, "Speed adjustment state has changed from "
-                            + MediaPlayer.this.speedAdjustmentAvailable
-                            + " to " + speedAdjustmentAvailable);
-                    MediaPlayer.this.speedAdjustmentAvailable = speedAdjustmentAvailable;
-                    if (MediaPlayer.this.speedAdjustmentAvailableChangedListener != null) {
-                        MediaPlayer.this.speedAdjustmentAvailableChangedListener
-                                .onSpeedAdjustmentAvailableChanged(arg0, speedAdjustmentAvailable);
-                    }
+    OnSpeedAdjustmentAvailableChangedListener onSpeedAdjustmentAvailableChangedListener = (arg0, speedAdjustmentAvailable) -> {
+        lock.lock();
+        try {
+            Log.d(MP_TAG, "onSpeedAdjustmentAvailableChangedListener.onSpeedAdjustmentAvailableChanged being called");
+            if (MediaPlayer.this.speedAdjustmentAvailable != speedAdjustmentAvailable) {
+                Log.d(MP_TAG, "Speed adjustment state has changed from "
+                        + MediaPlayer.this.speedAdjustmentAvailable
+                        + " to " + speedAdjustmentAvailable);
+                MediaPlayer.this.speedAdjustmentAvailable = speedAdjustmentAvailable;
+                if (MediaPlayer.this.speedAdjustmentAvailableChangedListener != null) {
+                    MediaPlayer.this.speedAdjustmentAvailableChangedListener
+                            .onSpeedAdjustmentAvailableChanged(arg0, speedAdjustmentAvailable);
                 }
-            } finally {
-                lock.unlock();
             }
+        } finally {
+            lock.unlock();
         }
     };
     private OnSpeedAdjustmentAvailableChangedListener speedAdjustmentAvailableChangedListener = null;
@@ -388,19 +379,16 @@ public class MediaPlayer {
                     this.sbmp = new ServiceBackedAudioPlayer(this, context,
                             new ServiceConnection() {
                                 public void onServiceConnected(ComponentName className, final IBinder service) {
-                                    Thread t = new Thread(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            // This lock probably isn't granular
-                                            // enough
-                                            MediaPlayer.this.lock.lock();
-                                            Log.d(MP_TAG, "onServiceConnected");
-                                            try {
-                                                switchMediaPlayerImpl(mpi, sbmp);
-                                                Log.d(MP_TAG, "End onServiceConnected");
-                                            } finally {
-                                                MediaPlayer.this.lock.unlock();
-                                            }
+                                    Thread t = new Thread(() -> {
+                                        // This lock probably isn't granular
+                                        // enough
+                                        MediaPlayer.this.lock.lock();
+                                        Log.d(MP_TAG, "onServiceConnected");
+                                        try {
+                                            switchMediaPlayerImpl(mpi, sbmp);
+                                            Log.d(MP_TAG, "End onServiceConnected");
+                                        } finally {
+                                            MediaPlayer.this.lock.unlock();
                                         }
                                     });
                                     t.start();
@@ -420,26 +408,23 @@ public class MediaPlayer {
                                         MediaPlayer.this.sbmp = null;
 
                                         if (mServiceDisconnectedHandler == null) {
-                                            mServiceDisconnectedHandler = new Handler(new Handler.Callback() {
-                                                @Override
-                                                public boolean handleMessage(Message msg) {
-                                                    // switchMediaPlayerImpl won't try to
-                                                    // clone anything from null
-                                                    lock.lock();
-                                                    try {
-                                                        if (MediaPlayer.this.amp == null) {
-                                                            // This should never be in this state
-                                                            MediaPlayer.this.amp = new AndroidAudioPlayer(
-                                                                    MediaPlayer.this,
-                                                                    MediaPlayer.this.mContext, userAgent);
-                                                        }
-                                                        // Use sbmp instead of null in case by some miracle it's
-                                                        // been restored in the meantime
-                                                        switchMediaPlayerImpl(mpi, amp);
-                                                        return true;
-                                                    } finally {
-                                                        lock.unlock();
+                                            mServiceDisconnectedHandler = new Handler(msg -> {
+                                                // switchMediaPlayerImpl won't try to
+                                                // clone anything from null
+                                                lock.lock();
+                                                try {
+                                                    if (MediaPlayer.this.amp == null) {
+                                                        // This should never be in this state
+                                                        MediaPlayer.this.amp = new AndroidAudioPlayer(
+                                                                MediaPlayer.this,
+                                                                MediaPlayer.this.mContext, userAgent);
                                                     }
+                                                    // Use sbmp instead of null in case by some miracle it's
+                                                    // been restored in the meantime
+                                                    switchMediaPlayerImpl(mpi, amp);
+                                                    return true;
+                                                } finally {
+                                                    lock.unlock();
                                                 }
                                             });
                                         }

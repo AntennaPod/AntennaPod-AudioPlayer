@@ -202,12 +202,7 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
             return;
         }
 
-        Thread t = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                doPrepare();
-            }
-        });
+        Thread t = new Thread(this::doPrepare);
         t.setDaemon(true);
         t.start();
     }
@@ -341,33 +336,29 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
 
         final boolean wasPlaying = playing;
 
-        Runnable seekRunnable = new Runnable() {
+        Runnable seekRunnable = () -> {
+            String lastPath = currentPath();
 
-            @Override
-            public void run() {
-                String lastPath = currentPath();
+            mSeekingCount.incrementAndGet();
+            try {
+                mExtractor.seekTo(((long) msec * 1000), MediaExtractor.SEEK_TO_PREVIOUS_SYNC);
+            } catch (Exception e) {
+                error();
+                return;
+            } finally {
+                mSeekingCount.decrementAndGet();
+            }
 
-                mSeekingCount.incrementAndGet();
-                try {
-                    mExtractor.seekTo(((long) msec * 1000), MediaExtractor.SEEK_TO_PREVIOUS_SYNC);
-                } catch (Exception e) {
-                    error();
-                    return;
-                } finally {
-                    mSeekingCount.decrementAndGet();
+            // make sure that the current episode didn't change while seeking
+            if (mExtractor != null && lastPath != null && lastPath.equals(currentPath()) && !state.is(ERROR)) {
+
+                Log.d(TAG, "seek completed, position: " + getCurrentPosition());
+
+                if (owningMediaPlayer.onSeekCompleteListener != null) {
+                    owningMediaPlayer.onSeekCompleteListener.onSeekComplete(owningMediaPlayer);
                 }
-
-                // make sure that the current episode didn't change while seeking
-                if (mExtractor != null && lastPath != null && lastPath.equals(currentPath()) && !state.is(ERROR)) {
-
-                    Log.d(TAG, "seek completed, position: " + getCurrentPosition());
-
-                    if (owningMediaPlayer.onSeekCompleteListener != null) {
-                        owningMediaPlayer.onSeekCompleteListener.onSeekComplete(owningMediaPlayer);
-                    }
-                    if (wasPlaying) {
-                        start();
-                    }
+                if (wasPlaying) {
+                    start();
                 }
             }
         };
@@ -775,13 +766,7 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
                 if (mContinue && (sawInputEOS || sawOutputEOS)) {
                     state.changeTo(PLAYBACK_COMPLETED);
                     if (owningMediaPlayer.onCompletionListener != null) {
-                        Thread t = new Thread(new Runnable() {
-                            @Override
-                            public void run() {
-                                owningMediaPlayer.onCompletionListener.onCompletion(owningMediaPlayer);
-
-                            }
-                        });
+                        Thread t = new Thread(() -> owningMediaPlayer.onCompletionListener.onCompletion(owningMediaPlayer));
                         t.setDaemon(true);
                         t.start();
                     }
@@ -795,12 +780,9 @@ public class SonicAudioPlayer extends AbstractAudioPlayer {
                 }
             }
         });
-        mDecoderThread.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
-            @Override
-            public void uncaughtException(Thread thread, Throwable ex) {
-                Log.e(TAG_TRACK, Log.getStackTraceString(ex));
-                error();
-            }
+        mDecoderThread.setUncaughtExceptionHandler((thread, ex) -> {
+            Log.e(TAG_TRACK, Log.getStackTraceString(ex));
+            error();
         });
         mDecoderThread.setDaemon(true);
         mDecoderThread.start();

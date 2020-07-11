@@ -32,71 +32,63 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
 
     MediaPlayer mp;
 
-    private final MediaPlayer.OnBufferingUpdateListener onBufferingUpdateListener = new MediaPlayer.OnBufferingUpdateListener() {
-        public void onBufferingUpdate(MediaPlayer mp, int percent) {
-            if (owningMediaPlayer != null) {
-                owningMediaPlayer.lock.lock();
-                try {
-                    if ((owningMediaPlayer.onBufferingUpdateListener != null)
-                            && (owningMediaPlayer.mpi == AndroidAudioPlayer.this)) {
-                        owningMediaPlayer.onBufferingUpdateListener.onBufferingUpdate(owningMediaPlayer, percent);
-                    }
-                } finally {
-                    owningMediaPlayer.lock.unlock();
+    private final MediaPlayer.OnBufferingUpdateListener onBufferingUpdateListener = (mp, percent) -> {
+        if (owningMediaPlayer != null) {
+            owningMediaPlayer.lock.lock();
+            try {
+                if ((owningMediaPlayer.onBufferingUpdateListener != null)
+                        && (owningMediaPlayer.mpi == AndroidAudioPlayer.this)) {
+                    owningMediaPlayer.onBufferingUpdateListener.onBufferingUpdate(owningMediaPlayer, percent);
                 }
+            } finally {
+                owningMediaPlayer.lock.unlock();
             }
-
         }
+
     };
 
-    private final MediaPlayer.OnCompletionListener onCompletionListener = new MediaPlayer.OnCompletionListener() {
-        public void onCompletion(MediaPlayer mp) {
-            Log.d(AMP_TAG, "onCompletionListener being called");
-            if (owningMediaPlayer != null) {
-                owningMediaPlayer.lock.lock();
-                try {
-                    if (owningMediaPlayer.onCompletionListener != null) {
-                        owningMediaPlayer.onCompletionListener.onCompletion(owningMediaPlayer);
-                    }
-                } finally {
-                    owningMediaPlayer.lock.unlock();
+    private final MediaPlayer.OnCompletionListener onCompletionListener = mp -> {
+        Log.d(AMP_TAG, "onCompletionListener being called");
+        if (owningMediaPlayer != null) {
+            owningMediaPlayer.lock.lock();
+            try {
+                if (owningMediaPlayer.onCompletionListener != null) {
+                    owningMediaPlayer.onCompletionListener.onCompletion(owningMediaPlayer);
                 }
+            } finally {
+                owningMediaPlayer.lock.unlock();
             }
         }
     };
 
-    private final MediaPlayer.OnErrorListener onErrorListener = new MediaPlayer.OnErrorListener() {
-        public boolean onError(MediaPlayer mp, int what, int extra) {
-            // Once we're in errored state, any received messages are going to be junked
-            if (owningMediaPlayer != null) {
-                owningMediaPlayer.lock.lock();
-                try {
-                    if (owningMediaPlayer.onErrorListener != null) {
-                        return owningMediaPlayer.onErrorListener.onError(owningMediaPlayer, what, extra);
-                    }
-                } finally {
-                    owningMediaPlayer.lock.unlock();
+    private final MediaPlayer.OnErrorListener onErrorListener = (mp, what, extra) -> {
+        // Once we're in errored state, any received messages are going to be junked
+        if (owningMediaPlayer != null) {
+            owningMediaPlayer.lock.lock();
+            try {
+                if (owningMediaPlayer.onErrorListener != null) {
+                    return owningMediaPlayer.onErrorListener.onError(owningMediaPlayer, what, extra);
                 }
+            } finally {
+                owningMediaPlayer.lock.unlock();
             }
-            return false;
         }
+        return false;
     };
 
-    private final MediaPlayer.OnInfoListener onInfoListener = new MediaPlayer.OnInfoListener() {
-        public boolean onInfo(MediaPlayer mp, int what, int extra) {
-            if (owningMediaPlayer != null) {
-                owningMediaPlayer.lock.lock();
-                try {
-                    if ((owningMediaPlayer.onInfoListener != null)
-                            && (owningMediaPlayer.mpi == AndroidAudioPlayer.this)) {
-                        return owningMediaPlayer.onInfoListener.onInfo(owningMediaPlayer, what, extra);
-                    }
-                } finally {
-                    owningMediaPlayer.lock.unlock();
+    private final MediaPlayer.OnInfoListener onInfoListener = (mp, what, extra) -> {
+        if (owningMediaPlayer != null) {
+            owningMediaPlayer.lock.lock();
+            try {
+                if ((owningMediaPlayer.onInfoListener != null)
+                        && (owningMediaPlayer.mpi == AndroidAudioPlayer.this)) {
+                    return owningMediaPlayer.onInfoListener.onInfo(owningMediaPlayer, what, extra);
                 }
+            } finally {
+                owningMediaPlayer.lock.unlock();
             }
-            return false;
         }
+        return false;
     };
 
     // We have to assign this.onPreparedListener because the
@@ -104,50 +96,46 @@ public class AndroidAudioPlayer extends AbstractAudioPlayer {
     // to PREPARED.  Due to prepareAsync, that's the only
     // reasonable place to do it
     // The others it just didn't make sense to have a setOnXListener that didn't use the parameter
-    private final MediaPlayer.OnPreparedListener onPreparedListener = new MediaPlayer.OnPreparedListener() {
-        public void onPrepared(MediaPlayer mp) {
-            Log.d(AMP_TAG, "Calling onPreparedListener.onPrepared()");
-            if (AndroidAudioPlayer.this.owningMediaPlayer != null) {
-                AndroidAudioPlayer.this.lockMuteOnPreparedCount.lock();
-                try {
-                    if (AndroidAudioPlayer.this.muteOnPreparedCount > 0) {
-                        AndroidAudioPlayer.this.muteOnPreparedCount--;
-                    } else {
-                        AndroidAudioPlayer.this.muteOnPreparedCount = 0;
-                        Log.d(AMP_TAG, "Invoking AndroidMediaPlayer.this.owningMediaPlayer.onPreparedListener.onPrepared");
-                        AndroidAudioPlayer.this.owningMediaPlayer.onPreparedListener.onPrepared(AndroidAudioPlayer.this.owningMediaPlayer);
-                    }
-                } finally {
-                    AndroidAudioPlayer.this.lockMuteOnPreparedCount.unlock();
+    private final MediaPlayer.OnPreparedListener onPreparedListener = mp -> {
+        Log.d(AMP_TAG, "Calling onPreparedListener.onPrepared()");
+        if (AndroidAudioPlayer.this.owningMediaPlayer != null) {
+            AndroidAudioPlayer.this.lockMuteOnPreparedCount.lock();
+            try {
+                if (AndroidAudioPlayer.this.muteOnPreparedCount > 0) {
+                    AndroidAudioPlayer.this.muteOnPreparedCount--;
+                } else {
+                    AndroidAudioPlayer.this.muteOnPreparedCount = 0;
+                    Log.d(AMP_TAG, "Invoking AndroidMediaPlayer.this.owningMediaPlayer.onPreparedListener.onPrepared");
+                    AndroidAudioPlayer.this.owningMediaPlayer.onPreparedListener.onPrepared(AndroidAudioPlayer.this.owningMediaPlayer);
                 }
-                if (owningMediaPlayer.mpi != AndroidAudioPlayer.this) {
-                    Log.d(AMP_TAG, "owningMediaPlayer has changed implementation");
-                }
+            } finally {
+                AndroidAudioPlayer.this.lockMuteOnPreparedCount.unlock();
+            }
+            if (owningMediaPlayer.mpi != AndroidAudioPlayer.this) {
+                Log.d(AMP_TAG, "owningMediaPlayer has changed implementation");
             }
         }
     };
 
-    private final MediaPlayer.OnSeekCompleteListener onSeekCompleteListener = new MediaPlayer.OnSeekCompleteListener() {
-        public void onSeekComplete(MediaPlayer mp) {
-            if (owningMediaPlayer != null) {
-                owningMediaPlayer.lock.lock();
+    private final MediaPlayer.OnSeekCompleteListener onSeekCompleteListener = mp -> {
+        if (owningMediaPlayer != null) {
+            owningMediaPlayer.lock.lock();
+            try {
+                lockMuteOnSeekCount.lock();
                 try {
-                    lockMuteOnSeekCount.lock();
-                    try {
-                        if (AndroidAudioPlayer.this.muteOnSeekCount > 0) {
-                            AndroidAudioPlayer.this.muteOnSeekCount--;
-                        } else {
-                            AndroidAudioPlayer.this.muteOnSeekCount = 0;
-                            if (AndroidAudioPlayer.this.owningMediaPlayer.onSeekCompleteListener != null) {
-                                owningMediaPlayer.onSeekCompleteListener.onSeekComplete(owningMediaPlayer);
-                            }
+                    if (AndroidAudioPlayer.this.muteOnSeekCount > 0) {
+                        AndroidAudioPlayer.this.muteOnSeekCount--;
+                    } else {
+                        AndroidAudioPlayer.this.muteOnSeekCount = 0;
+                        if (AndroidAudioPlayer.this.owningMediaPlayer.onSeekCompleteListener != null) {
+                            owningMediaPlayer.onSeekCompleteListener.onSeekComplete(owningMediaPlayer);
                         }
-                    } finally {
-                        lockMuteOnSeekCount.unlock();
                     }
                 } finally {
-                    owningMediaPlayer.lock.unlock();
+                    lockMuteOnSeekCount.unlock();
                 }
+            } finally {
+                owningMediaPlayer.lock.unlock();
             }
         }
     };
